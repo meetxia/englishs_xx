@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>牛津词典音频测试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-center mb-8">牛津词典音频测试</h1>
+        
+        <!-- 发音设置 -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-xl font-semibold mb-4">发音设置</h2>
+            <div class="flex gap-4 mb-4">
+                <label class="inline-flex items-center">
+                    <input type="radio" name="test-accent" value="gb" class="form-radio text-red-500" checked>
+                    <span class="ml-2">🇬🇧 英式发音</span>
+                </label>
+                <label class="inline-flex items-center">
+                    <input type="radio" name="test-accent" value="us" class="form-radio text-blue-500">
+                    <span class="ml-2">🇺🇸 美式发音</span>
+                </label>
+            </div>
+            <label class="inline-flex items-center">
+                <input type="checkbox" id="test-fallback" class="form-checkbox text-green-500" checked>
+                <span class="ml-2">启用TTS备用发音</span>
+            </label>
+        </div>
+
+        <!-- 测试单词 -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-xl font-semibold mb-4">测试单词</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <button onclick="testPronounce('hello')" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    🔊 hello
+                </button>
+                <button onclick="testPronounce('world')" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    🔊 world
+                </button>
+                <button onclick="testPronounce('pronunciation')" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                    🔊 pronunciation
+                </button>
+                <button onclick="testPronounce('beautiful')" class="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600">
+                    🔊 beautiful
+                </button>
+                <button onclick="testPronounce('education')" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600">
+                    🔊 education
+                </button>
+                <button onclick="testPronounce('technology')" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+                    🔊 technology
+                </button>
+                <button onclick="testPronounce('important')" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                    🔊 important
+                </button>
+                <button onclick="testPronounce('development')" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                    🔊 development
+                </button>
+            </div>
+        </div>
+
+        <!-- 自定义测试 -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-xl font-semibold mb-4">自定义测试</h2>
+            <div class="flex gap-2">
+                <input type="text" id="custom-word" placeholder="输入要测试的单词" 
+                       class="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button onclick="testCustomWord()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    🔊 测试发音
+                </button>
+            </div>
+        </div>
+
+        <!-- 状态显示 -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4">状态信息</h2>
+            <div id="status-display" class="bg-gray-50 p-4 rounded border min-h-[100px] font-mono text-sm">
+                点击上方按钮测试发音功能...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 发音设置
+        let testSettings = {
+            accent: 'gb',
+            fallbackToTTS: true
+        };
+
+        // 获取本地音频文件路径
+        function getLocalAudioPath(word, accent = null) {
+            const selectedAccent = accent || testSettings.accent;
+            const fileName = `${word.toLowerCase()}_${selectedAccent}.mp3`;
+            return `/data/yinpin/${fileName}`;
+        }
+
+        // 播放本地音频文件
+        function playLocalAudio(word, accent = null) {
+            return new Promise((resolve, reject) => {
+                const audioPath = getLocalAudioPath(word, accent);
+                const audio = new Audio(audioPath);
+                
+                logStatus(`尝试播放本地音频: ${audioPath}`);
+                
+                audio.onloadeddata = () => {
+                    logStatus(`本地音频加载成功: ${word} (${accent || testSettings.accent})`);
+                    audio.play()
+                        .then(() => {
+                            logStatus(`本地音频播放成功: ${word} (${accent || testSettings.accent})`);
+                            resolve();
+                        })
+                        .catch(error => {
+                            logStatus(`本地音频播放失败: ${error.message}`);
+                            reject(error);
+                        });
+                };
+                
+                audio.onerror = (error) => {
+                    logStatus(`本地音频加载失败: ${error.message || '未知错误'}`);
+                    reject(error);
+                };
+                
+                // 设置超时
+                setTimeout(() => {
+                    if (audio.readyState === 0) {
+                        reject(new Error('音频加载超时'));
+                    }
+                }, 3000);
+            });
+        }
+
+        // 测试发音函数
+        async function testPronounce(word) {
+            logStatus(`\n=== 开始测试单词: ${word} ===`);
+            logStatus(`当前设置: ${testSettings.accent === 'gb' ? '英式' : '美式'}发音, TTS备用: ${testSettings.fallbackToTTS ? '启用' : '禁用'}`);
+            
+            try {
+                await playLocalAudio(word);
+                logStatus(`✅ 发音测试成功: ${word}`);
+            } catch (error) {
+                logStatus(`❌ 本地音频失败: ${error.message}`);
+                
+                if (testSettings.fallbackToTTS) {
+                    logStatus(`尝试TTS备用发音...`);
+                    // 这里可以添加TTS测试代码
+                    logStatus(`TTS功能需要完整的main.js支持`);
+                }
+            }
+        }
+
+        // 自定义单词测试
+        function testCustomWord() {
+            const word = document.getElementById('custom-word').value.trim();
+            if (word) {
+                testPronounce(word);
+            } else {
+                logStatus('请输入要测试的单词');
+            }
+        }
+
+        // 记录状态
+        function logStatus(message) {
+            const display = document.getElementById('status-display');
+            display.textContent += message + '\n';
+            display.scrollTop = display.scrollHeight;
+            console.log(message);
+        }
+
+        // 初始化事件监听器
+        document.addEventListener('DOMContentLoaded', () => {
+            // 发音类型选择
+            const accentRadios = document.querySelectorAll('input[name="test-accent"]');
+            accentRadios.forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        testSettings.accent = e.target.value;
+                        logStatus(`发音类型已切换为: ${testSettings.accent === 'gb' ? '英式' : '美式'}`);
+                    }
+                });
+            });
+
+            // TTS备用选项
+            const fallbackCheckbox = document.getElementById('test-fallback');
+            fallbackCheckbox.addEventListener('change', (e) => {
+                testSettings.fallbackToTTS = e.target.checked;
+                logStatus(`TTS备用选项: ${testSettings.fallbackToTTS ? '已启用' : '已禁用'}`);
+            });
+
+            // 回车键测试
+            document.getElementById('custom-word').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    testCustomWord();
+                }
+            });
+
+            logStatus('音频测试页面已加载完成');
+        });
+    </script>
+</body>
+</html>

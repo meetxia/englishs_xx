@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>最小化测试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-8">
+    <h1 class="text-2xl font-bold mb-4">最小化功能测试</h1>
+    
+    <div class="space-y-4">
+        <div>
+            <h3 class="text-lg font-semibold">1. 选择预设词库</h3>
+            <div id="word-list-container" class="flex flex-wrap gap-2 border p-4 min-h-[60px]">
+                <p class="text-gray-500">加载中...</p>
+            </div>
+        </div>
+        
+        <div>
+            <h3 class="text-lg font-semibold">3. 选择故事主题</h3>
+            <div id="theme-container" class="flex flex-wrap gap-2 border p-4 min-h-[60px]">
+                <p class="text-gray-500">加载中...</p>
+            </div>
+        </div>
+        
+        <div>
+            <button id="test-load" class="bg-blue-500 text-white px-4 py-2 rounded">手动加载数据</button>
+        </div>
+    </div>
+
+    <script>
+        console.log('最小化测试页面开始');
+        
+        // 简化的数据存储
+        let wordLists = {};
+        let storyThemes = [];
+        let selectedWordList = '';
+        let selectedTheme = '';
+        
+        // 获取DOM元素
+        const wordListContainer = document.getElementById('word-list-container');
+        const themeContainer = document.getElementById('theme-container');
+        
+        console.log('DOM元素检查:');
+        console.log('wordListContainer:', wordListContainer);
+        console.log('themeContainer:', themeContainer);
+        
+        // 简化的数据加载函数
+        async function loadDataFromAPI() {
+            console.log('开始加载API数据...');
+            
+            try {
+                // 加载词汇分类
+                console.log('请求词汇分类...');
+                const categoriesResponse = await fetch('/api/words/categories');
+                console.log('词汇分类响应:', categoriesResponse.status);
+                
+                if (!categoriesResponse.ok) {
+                    throw new Error(`词汇分类请求失败: ${categoriesResponse.status}`);
+                }
+                
+                const categories = await categoriesResponse.json();
+                console.log('词汇分类数据:', categories);
+                
+                // 处理词汇分类
+                wordLists = {};
+                categories.forEach(category => {
+                    wordLists[category.id] = {
+                        name: category.name,
+                        description: category.description || ''
+                    };
+                });
+                
+                if (categories.length > 0) {
+                    selectedWordList = categories[0].id;
+                }
+                
+                // 加载故事主题
+                console.log('请求故事主题...');
+                const themesResponse = await fetch('/api/theme-templates');
+                console.log('故事主题响应:', themesResponse.status);
+                
+                if (!themesResponse.ok) {
+                    throw new Error(`故事主题请求失败: ${themesResponse.status}`);
+                }
+                
+                const themes = await themesResponse.json();
+                console.log('故事主题数据:', themes);
+                
+                // 处理故事主题
+                storyThemes = themes;
+                if (themes.length > 0) {
+                    selectedTheme = themes[0].id;
+                }
+                
+                // 渲染UI
+                renderControls();
+                
+            } catch (error) {
+                console.error('加载数据失败:', error);
+                wordListContainer.innerHTML = `<p class="text-red-500">加载失败: ${error.message}</p>`;
+                themeContainer.innerHTML = `<p class="text-red-500">加载失败: ${error.message}</p>`;
+            }
+        }
+        
+        // 渲染控件
+        function renderControls() {
+            console.log('开始渲染控件...');
+            console.log('词汇分类数量:', Object.keys(wordLists).length);
+            console.log('故事主题数量:', storyThemes.length);
+            
+            // 渲染词汇分类
+            wordListContainer.innerHTML = '';
+            for (const id in wordLists) {
+                const button = document.createElement('button');
+                button.textContent = wordLists[id].name;
+                button.className = 'px-3 py-1 border rounded bg-white hover:bg-gray-100';
+                if (id === selectedWordList) {
+                    button.className += ' bg-red-500 text-white';
+                }
+                button.addEventListener('click', () => {
+                    selectedWordList = id;
+                    renderControls(); // 重新渲染以更新选中状态
+                });
+                wordListContainer.appendChild(button);
+            }
+            
+            // 渲染故事主题
+            themeContainer.innerHTML = '';
+            storyThemes.forEach(theme => {
+                const button = document.createElement('button');
+                button.textContent = theme.name;
+                button.className = 'px-3 py-1 border rounded bg-white hover:bg-gray-100';
+                if (theme.id === selectedTheme) {
+                    button.className += ' bg-red-500 text-white';
+                }
+                button.addEventListener('click', () => {
+                    selectedTheme = theme.id;
+                    renderControls(); // 重新渲染以更新选中状态
+                });
+                themeContainer.appendChild(button);
+            });
+            
+            console.log('控件渲染完成');
+        }
+        
+        // 页面加载完成后自动加载数据
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM加载完成，开始初始化...');
+            loadDataFromAPI();
+        });
+        
+        // 手动加载按钮
+        document.getElementById('test-load').addEventListener('click', () => {
+            console.log('手动触发数据加载...');
+            loadDataFromAPI();
+        });
+    </script>
+</body>
+</html>

@@ -44,17 +44,17 @@
 
 1. 安装依赖：
    ```
-   npm install
+npm install
    ```
 
 2. 启动服务器：
    ```
-   npm start
+npm start
    ```
 
 3. 开发模式（自动重启）：
    ```
-   npm run dev
+npm run dev
    ```
 
 4. 服务器默认在 http://localhost:3000 运行

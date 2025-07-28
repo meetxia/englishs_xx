@@ -17,18 +17,35 @@ app.use(express.urlencoded({ extended: true })); // 解析表单数据
 // 静态文件服务
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 数据库初始化
-dbModule.initDb();
-
 // API路由
 app.use('/api', require('./routes/api'));
 
 // 所有其他请求都返回index.html (SPA支持)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  // 确保不拦截API路由
+  if (!req.path.startsWith('/api/')) {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  } else {
+    res.status(404).json({ error: '未找到API路径' });
+  }
 });
 
 // 启动服务器
-app.listen(PORT, () => {
-  console.log(`服务器已启动，访问地址: http://localhost:${PORT}`);
-}); 
+async function startServer() {
+  try {
+    // 先初始化数据库
+    await dbModule.initDb();
+    console.log('数据库初始化完成');
+    
+    // 然后启动服务器
+    app.listen(PORT, () => {
+      console.log(`服务器已启动，访问地址: http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error('服务器启动失败:', error);
+    process.exit(1);
+  }
+}
+
+// 调用启动函数
+startServer(); 

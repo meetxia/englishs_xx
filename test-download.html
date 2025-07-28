@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片下载测试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="public/css/styles.css">
+</head>
+<body class="p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">图片下载测试页面</h1>
+        
+        <!-- 测试卡片 -->
+        <div class="bg-white p-6 rounded-lg shadow-lg mb-6">
+            <div id="test-card-content" class="card-content">
+                <h2 class="text-xl font-bold mb-4 text-center text-red-500">模式一：爽文带背</h2>
+                <p>
+                    在一个风和日丽的下午，小镇上的小王决定去 <span class="highlight" onclick="pronounceWord('laundry')">laundry</span> 店洗衣服。
+                    他推着装满脏衣物的手推车，心里盘算着等会儿还要去超超市买些 <span class="highlight" onclick="pronounceWord('grocery')">grocery</span>。
+                    最近工作压力大，每天通勤 <span class="highlight" onclick="pronounceWord('commute')">commute</span> 都要花上好几个小时，
+                    今天难得休息，他打算好好犒劳下自己。走进洗衣店，小王遇到了邻居老李。"嘿，小伙子，怎么看起来这么 
+                    <span class="highlight" onclick="pronounceWord('exhausted')">exhausted</span>？"老李关心地问道。"哎，别提了，天天加班到深夜。"
+                    小王苦笑着回答。老李拍拍他的肩膀："年轻人，要懂得 <span class="highlight" onclick="pronounceWord('appreciate')">appreciate</span> 
+                    生活中的小确幸啊。"告别老李后，小王开始忙碌起来。先是将衣物分类放入洗衣机，然后趁着空档时间跑到附近新开的一家餐厅吃午饭。
+                    这家店主打 <span class="highlight" onclick="pronounceWord('delicious')">delicious</span> 的家乡菜，果然名不虚传！一顿饭下来，不仅填饱了肚子，
+                    心情也跟着好了许多。回到 <span class="highlight" onclick="pronounceWord('laundry')">laundry</span> 店时，正好遇到店主正在摆放新进的 
+                    <span class="highlight" onclick="pronounceWord('furniture')">furniture</span>，整个店铺焕然一新。"这真是 
+                    <span class="highlight" onclick="pronounceWord('convenient')">convenient</span> 极了！"小王感叹道，"以后来这儿就像是回家一样舒服。"
+                    取完干净的衣服准备离开之际，店主送给他一张 <span class="highlight" onclick="pronounceWord('receipt')">receipt</span>，
+                    并附赠了一张下次使用的优惠券。"希望你能经常光顾我们小店哦！"店主笑眯眯地说道。那天晚上，当小王坐在自家阳台上，
+                    享受着从超市买回来的各种美食时，突然意识到：原来幸福就是这么简单——与邻里间的温暖交流、一顿美味的食物、
+                    以及生活中那些不经意间的小惊喜。想到这里，他不禁感叹："真是太 <span class="highlight" onclick="pronounceWord('awesome')">awesome</span> 了！"
+                </p>
+            </div>
+            <div class="mt-4 text-center">
+                <button onclick="downloadTestCard()" class="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600">
+                    下载测试卡片
+                </button>
+            </div>
+        </div>
+        
+        <!-- 测试结果显示 -->
+        <div class="bg-gray-100 p-4 rounded-lg">
+            <h3 class="font-bold mb-2">测试说明：</h3>
+            <ul class="list-disc list-inside space-y-1 text-sm">
+                <li>点击"下载测试卡片"按钮生成图片</li>
+                <li>检查下载的图片中英文单词是否完整显示</li>
+                <li>特别注意 laundry, grocery, commute, exhausted, appreciate, delicious, furniture, convenient, receipt, awesome 等单词</li>
+                <li>确认单词没有被截断或换行</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 复制主要的下载函数
+        function downloadTestCard() {
+            const cardElement = document.getElementById('test-card-content');
+            const originalContent = cardElement.innerHTML;
+            
+            // 创建临时的3:4比例容器
+            const tempContainer = document.createElement('div');
+            tempContainer.className = 'card-content-export';
+            tempContainer.style.cssText = `
+                position: fixed;
+                top: -10000px;
+                left: -10000px;
+                width: 600px;
+                height: 800px;
+                background: white;
+                padding: 40px;
+                box-sizing: border-box;
+                font-family: 'Noto Sans SC', 'Arial', 'Helvetica', sans-serif;
+                display: flex;
+                flex-direction: column;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                hyphens: none;
+            `;
+            
+            // 复制内容并优化样式
+            tempContainer.innerHTML = originalContent;
+            
+            // 优化标题样式
+            const title = tempContainer.querySelector('h2');
+            if (title) {
+                title.style.cssText = `
+                    font-size: 32px;
+                    margin-bottom: 40px;
+                    text-align: center;
+                    font-weight: bold;
+                `;
+            }
+            
+            // 优化内容样式
+            const content = tempContainer.querySelector('p, div:not(h2)');
+            if (content) {
+                content.style.cssText = `
+                    font-size: 18px;
+                    line-height: 2.2;
+                    text-align: justify;
+                    flex: 1;
+                    display: flex;
+                    align-items: flex-start;
+                    flex-direction: column;
+                    justify-content: flex-start;
+                    word-wrap: break-word;
+                    overflow-wrap: break-word;
+                    hyphens: none;
+                `;
+            }
+            
+            // 优化所有高亮单词的样式，防止截断
+            const highlights = tempContainer.querySelectorAll('.highlight, .highlight-correct');
+            console.log(`找到 ${highlights.length} 个高亮单词`);
+            highlights.forEach((highlight, index) => {
+                console.log(`处理第 ${index + 1} 个高亮单词: ${highlight.textContent}`);
+                highlight.style.cssText += `
+                    white-space: nowrap !important;
+                    word-break: keep-all !important;
+                    display: inline-block !important;
+                    font-family: 'Arial', 'Helvetica', sans-serif !important;
+                    font-weight: 600 !important;
+                    overflow-wrap: normal !important;
+                    hyphens: none !important;
+                `;
+            });
+            
+            document.body.appendChild(tempContainer);
+            
+            // 强制应用样式，确保在所有浏览器中都生效
+            setTimeout(() => {
+                const allHighlights = tempContainer.querySelectorAll('.highlight, .highlight-correct, span[onclick*="pronounceWord"]');
+                allHighlights.forEach(element => {
+                    element.style.setProperty('white-space', 'nowrap', 'important');
+                    element.style.setProperty('word-break', 'keep-all', 'important');
+                    element.style.setProperty('display', 'inline-block', 'important');
+                    element.style.setProperty('overflow-wrap', 'normal', 'important');
+                    element.style.setProperty('hyphens', 'none', 'important');
+                });
+            }, 100);
+            
+            // 等待字体加载完成和样式应用
+            document.fonts.ready.then(() => {
+                setTimeout(() => {
+                    // 生成图片
+                    html2canvas(tempContainer, { 
+                        scale: 2, 
+                        useCORS: true, 
+                        backgroundColor: '#ffffff',
+                        width: 600,
+                        height: 800,
+                        allowTaint: true,
+                        foreignObjectRendering: true,
+                        logging: false,
+                        letterRendering: true,
+                        onclone: function(clonedDoc) {
+                            // 在克隆的文档中确保样式正确应用
+                            const clonedContainer = clonedDoc.querySelector('.card-content-export');
+                            if (clonedContainer) {
+                                const highlights = clonedContainer.querySelectorAll('.highlight, .highlight-correct');
+                                highlights.forEach(highlight => {
+                                    highlight.style.whiteSpace = 'nowrap';
+                                    highlight.style.wordBreak = 'keep-all';
+                                    highlight.style.display = 'inline-block';
+                                    highlight.style.fontFamily = 'Arial, Helvetica, sans-serif';
+                                });
+                            }
+                        }
+                    }).then(canvas => {
+                        const image = canvas.toDataURL('image/png', 1.0);
+                        const link = document.createElement('a');
+                        link.href = image;
+                        link.download = 'test-card-fixed.png';
+                        link.click();
+                        
+                        // 清理临时元素
+                        document.body.removeChild(tempContainer);
+                        alert('测试图片已下载！请检查英文单词是否完整显示。');
+                    }).catch(error => {
+                        console.error('生成图片失败:', error);
+                        document.body.removeChild(tempContainer);
+                        alert('生成图片失败: ' + error.message);
+                    });
+                }, 200); // 延迟200ms确保样式完全应用
+            });
+        }
+        
+        // 语音播放函数
+        function pronounceWord(word) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(word);
+                utterance.lang = 'en-US';
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+    </script>
+</body>
+</html>

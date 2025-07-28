@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音频功能测试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="p-8 bg-gray-100">
+    <!-- 音频指示器 -->
+    <div id="sound-indicator" class="sound-indicator">🔊</div>
+    
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-center">🔊 音频功能测试页面</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- 语音合成测试 -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4">🎤 语音合成测试</h2>
+                <div class="space-y-3">
+                    <button onclick="testPronounce('hello')" class="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">
+                        发音: Hello
+                    </button>
+                    <button onclick="testPronounce('world')" class="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">
+                        发音: World
+                    </button>
+                    <button onclick="testPronounce('beautiful')" class="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">
+                        发音: Beautiful
+                    </button>
+                    <button onclick="testPronounce('pronunciation')" class="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">
+                        发音: Pronunciation
+                    </button>
+                </div>
+                
+                <div class="mt-4">
+                    <input type="text" id="custom-word" placeholder="输入要发音的单词" 
+                           class="w-full p-2 border rounded mb-2">
+                    <button onclick="testCustomWord()" class="w-full bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600">
+                        发音自定义单词
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 音效测试 -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4">🎵 音效测试</h2>
+                <div class="space-y-3">
+                    <button onclick="playWordClickSound()" class="w-full bg-yellow-500 text-white py-2 px-4 rounded hover:bg-yellow-600">
+                        点击音效
+                    </button>
+                    <button onclick="playSuccessSound()" class="w-full bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600">
+                        成功音效
+                    </button>
+                    <button onclick="playErrorSound()" class="w-full bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600">
+                        错误音效
+                    </button>
+                    <button onclick="testCustomBeep()" class="w-full bg-purple-500 text-white py-2 px-4 rounded hover:bg-purple-600">
+                        自定义音效
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 系统信息 -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4">🔧 系统信息</h2>
+                <div class="space-y-2 text-sm">
+                    <div>浏览器: <span id="browser-info"></span></div>
+                    <div>语音合成: <span id="speech-support"></span></div>
+                    <div>Web Audio: <span id="audio-support"></span></div>
+                    <div>可用语音: <span id="voices-count"></span></div>
+                </div>
+                <button onclick="initAudio()" class="w-full mt-4 bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">
+                    重新初始化音频
+                </button>
+            </div>
+            
+            <!-- 控制台日志 -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4">📝 控制台日志</h2>
+                <div id="console-log" class="bg-black text-green-400 p-3 rounded font-mono text-xs max-h-64 overflow-y-auto">
+                    <!-- 日志将显示在这里 -->
+                </div>
+                <button onclick="clearLog()" class="w-full mt-2 bg-gray-500 text-white py-1 px-2 rounded hover:bg-gray-600 text-sm">
+                    清空日志
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 重写console.log来显示在页面上
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        const logContainer = document.getElementById('console-log');
+        
+        function addLogEntry(message, type = 'log') {
+            const logEntry = document.createElement('div');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'warn' ? '⚠️' : '📝';
+            logEntry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> ${prefix} ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addLogEntry(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addLogEntry(args.join(' '), 'error');
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addLogEntry(args.join(' '), 'warn');
+        };
+        
+        function clearLog() {
+            logContainer.innerHTML = '';
+        }
+        
+        // 测试函数
+        function testPronounce(word) {
+            console.log(`测试发音: ${word}`);
+            pronounceWord(word);
+        }
+        
+        function testCustomWord() {
+            const word = document.getElementById('custom-word').value.trim();
+            if (word) {
+                testPronounce(word);
+            } else {
+                console.warn('请输入要发音的单词');
+            }
+        }
+        
+        function testCustomBeep() {
+            console.log('播放自定义音效');
+            playBeepSound(1000, 0.3, 0.2);
+        }
+        
+        // 检测系统信息
+        function updateSystemInfo() {
+            document.getElementById('browser-info').textContent = navigator.userAgent.split(' ').pop();
+            document.getElementById('speech-support').textContent = 'speechSynthesis' in window ? '✅ 支持' : '❌ 不支持';
+            document.getElementById('audio-support').textContent = 'AudioContext' in window || 'webkitAudioContext' in window ? '✅ 支持' : '❌ 不支持';
+            
+            if ('speechSynthesis' in window) {
+                const voices = speechSynthesis.getVoices();
+                document.getElementById('voices-count').textContent = `${voices.length} 个`;
+                
+                // 如果语音列表为空，等待加载
+                if (voices.length === 0) {
+                    speechSynthesis.addEventListener('voiceschanged', () => {
+                        const newVoices = speechSynthesis.getVoices();
+                        document.getElementById('voices-count').textContent = `${newVoices.length} 个`;
+                        console.log('可用语音:', newVoices.map(v => `${v.name} (${v.lang})`));
+                    });
+                } else {
+                    console.log('可用语音:', voices.map(v => `${v.name} (${v.lang})`));
+                }
+            } else {
+                document.getElementById('voices-count').textContent = '不支持';
+            }
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('音频测试页面加载完成');
+            updateSystemInfo();
+            
+            // 自动初始化音频（需要用户交互）
+            document.addEventListener('click', () => {
+                if (!window.audioInitialized) {
+                    initAudio();
+                }
+            }, { once: true });
+        });
+    </script>
+    
+    <!-- 引入主要的音频功能 -->
+    <script src="js/main.js"></script>
+</body>
+</html>

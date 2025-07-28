@@ -1,0 +1,21 @@
+# 依赖目录
+node_modules/
+__pycache__/
+
+# 环境文件
+
+# 日志文件
+*.log
+
+# 临时文件
+tmp/
+temp/
+*.tmp
+data/yinpin/
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 上传目录
+uploads/*
+!uploads/.gitkeep

@@ -8,7 +8,7 @@ const dbPath = path.join(__dirname, 'data', 'words.db');
 let db = null;
 
 /**
- * 初始化数据库连接
+ * 初始化数据库连接和表结构
  */
 function initDb() {
   return new Promise((resolve, reject) => {
@@ -26,9 +26,77 @@ function initDb() {
       }
       
       console.log('数据库连接成功');
+      
+      // 初始化表结构，但不等待其完成
+      initTables().catch(err => {
+        console.error('初始化表结构失败:', err);
+      });
+      
+      // 直接返回数据库连接
       resolve(db);
     });
   });
+}
+
+/**
+ * 初始化数据库表结构
+ */
+async function initTables() {
+  // 创建settings表（如果不存在）
+  await run(`
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    )
+  `);
+  
+  // 创建categories表（如果不存在）
+  await run(`
+    CREATE TABLE IF NOT EXISTS categories (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT
+    )
+  `);
+
+  // 创建words表（如果不存在）
+  await run(`
+    CREATE TABLE IF NOT EXISTS words (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      en TEXT NOT NULL,
+      phonetic TEXT,
+      pos TEXT,
+      cn TEXT,
+      category_id TEXT NOT NULL,
+      FOREIGN KEY (category_id) REFERENCES categories(id)
+    )
+  `);
+
+  // 创建theme_templates表（如果不存在）
+  await run(`
+    CREATE TABLE IF NOT EXISTS theme_templates (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      prompt_text TEXT NOT NULL,
+      is_active INTEGER DEFAULT 1
+    )
+  `);
+  
+  console.log('检查settings表是否有默认API密钥');
+  
+  // 检查是否已存在qwen_api_key设置
+  const qwenSetting = await get('SELECT value FROM settings WHERE key = ?', ['qwen_api_key']);
+  if (!qwenSetting) {
+    // 插入默认的阿里云千问API密钥
+    await run(
+      'INSERT INTO settings (key, value) VALUES (?, ?)',
+      ['qwen_api_key', 'sk-bb800a93f0fa4ebbb306a4c87f2de724']
+    );
+    console.log('已添加默认阿里云千问API密钥');
+  }
+  
+  console.log('数据库表结构初始化完成');
 }
 
 /**

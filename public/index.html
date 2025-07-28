@@ -6,13 +6,45 @@
     <title>爽文带背单词卡片生成器 (V3.0 专业版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Tone.js已禁用以避免兼容性问题 -->
     <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .sticky-generate-btn {
+            position: sticky;
+            bottom: 20px;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+        .sticky-generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* 添加音频效果反馈样式 */
+        .sound-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 1000;
+            display: none;
+        }
+    </style>
 </head>
 <body class="p-4 md:p-8">
+    <!-- 音频指示器 -->
+    <div id="sound-indicator" class="sound-indicator">🔊</div>
+    
     <div class="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
         <!-- Left Control Panel -->
-        <div class="lg:col-span-4 bg-white p-6 rounded-2xl shadow-md h-fit">
+        <div class="lg:col-span-6 bg-white p-6 rounded-2xl shadow-md h-fit">
             <div class="control-panel space-y-6">
                 <div>
                     <h3>1. 选择预设词库</h3>
@@ -31,11 +63,72 @@
                     </div>
                 </div>
                 <div>
-                    <h3>4. 参数设置</h3>
-                    <label for="char-count" class="block text-sm font-medium text-gray-700">故事字数: <span id="char-count-display" class="font-bold text-red-500">200</span>字</label>
-                    <input id="char-count" type="range" min="50" max="400" value="200" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    <h3>4. 音频功能</h3>
+                    <div class="bg-blue-50 p-3 rounded-lg mb-4 text-sm">
+                        <p class="mb-2"><strong>🔊 音频功能说明：</strong></p>
+                        <ul class="list-disc list-inside space-y-1 text-gray-700">
+                            <li>点击生成的单词卡片中的<span class="highlight">高亮单词</span>可以听发音</li>
+                            <li>点击词汇表中的🔊图标可以听单词发音</li>
+                            <li>填空测试中答对会有成功音效，答错会有错误音效</li>
+                            <li>使用牛津高阶英汉双解词典第10版音频文件</li>
+                            <li>首次使用需要点击页面任意位置激活音频系统</li>
+                        </ul>
+                    </div>
+
+                    <!-- 发音设置 -->
+                    <div class="mb-4">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">发音类型选择：</h4>
+                        <div class="flex gap-3">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="pronunciation-accent" value="gb" class="form-radio text-red-500" checked>
+                                <span class="ml-2 text-sm">🇬🇧 英式发音</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="pronunciation-accent" value="us" class="form-radio text-blue-500">
+                                <span class="ml-2 text-sm">🇺🇸 美式发音</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 备用发音设置 -->
+                    <div class="mb-4">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="fallback-tts" class="form-checkbox text-green-500" checked>
+                            <span class="ml-2 text-sm">当本地音频不可用时使用TTS语音合成</span>
+                        </label>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <button onclick="pronounceWord('hello')" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-sm">
+                            🔊 测试发音
+                        </button>
+                        <button onclick="pronounceWord('pronunciation')" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 text-sm">
+                            🔊 测试长单词
+                        </button>
+                        <a href="audio-test.html" target="_blank" class="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600 text-sm">
+                            🔧 音频测试页面
+                        </a>
+                    </div>
                 </div>
-                <button id="generate-btn" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 ease-in-out flex items-center justify-center text-lg">
+                <div>
+                    <h3>5. 参数设置</h3>
+                    <label for="char-count" class="block text-sm font-medium text-gray-700">故事字数: <span id="char-count-display" class="font-bold text-red-500">500</span>字</label>
+                    <input id="char-count" type="range" min="200" max="2000" value="500" step="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                </div>
+                <div>
+                    <h3>5. 选择AI模型</h3>
+                    <div class="flex flex-col gap-2 mt-2">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="ai-model" value="qwen" class="form-radio text-red-500" checked>
+                            <span class="ml-2">阿里云千问</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="ai-model" value="gemini" class="form-radio text-blue-500">
+                            <span class="ml-2">Google Gemini</span>
+                        </label>
+                    </div>
+                </div>
+                <button id="generate-btn" class="sticky-generate-btn w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 ease-in-out flex items-center justify-center text-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
                     AI 生成故事 & 学习卡片
                 </button>
@@ -43,43 +136,177 @@
         </div>
 
         <!-- Right Output Panel -->
-        <div class="lg:col-span-8">
+        <div class="lg:col-span-6">
+            <div id="welcome-section" class="bg-white p-6 rounded-2xl shadow-md mb-8">
+                <h3 class="text-xl font-bold text-gray-800 mb-4 text-center">欢迎使用爽文背单词卡片生成器</h3>
+                
+                <div class="bg-blue-50 p-4 rounded-lg mb-6">
+                    <p class="text-gray-700 mb-4">在左侧配置面板输入你想学习的单词，AI 帮为你创建生动有趣的故事和学习卡片</p>
+                    <div class="flex items-center justify-center space-x-4">
+                        <div class="text-center">
+                            <span class="inline-block bg-red-100 text-red-800 rounded-full px-3 py-1 text-sm font-semibold">1</span>
+                            <p class="mt-1 text-sm">选择词库或输入单词</p>
+                        </div>
+                        <div class="text-center">
+                            <span class="inline-block bg-blue-100 text-blue-800 rounded-full px-3 py-1 text-sm font-semibold">2</span>
+                            <p class="mt-1 text-sm">选择故事主题和卡片类型</p>
+                        </div>
+                        <div class="text-center">
+                            <span class="inline-block bg-green-100 text-green-800 rounded-full px-3 py-1 text-sm font-semibold">3</span>
+                            <p class="mt-1 text-sm">点击"AI 生成故事 & 学习卡片"按钮</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3 class="text-xl font-bold text-gray-800 mb-4 text-center">看看别人是如何使用的</h3>
+                
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <div class="example-tabs flex border-b border-gray-200 mb-4">
+                        <button class="example-tab-btn active px-4 py-2 text-sm font-medium text-red-500 border-b-2 border-red-500" data-example-tab="example-tab1">爽文带背</button>
+                        <button class="example-tab-btn px-4 py-2 text-sm font-medium text-gray-500" data-example-tab="example-tab2">中英对照</button>
+                        <button class="example-tab-btn px-4 py-2 text-sm font-medium text-gray-500" data-example-tab="example-tab3">单词列表</button>
+                        <button class="example-tab-btn px-4 py-2 text-sm font-medium text-gray-500" data-example-tab="example-tab4">填空测试</button>
+                    </div>
+                    
+                    <div class="example-tab-content">
+                        <!-- 爽文带背 -->
+                        <div id="example-tab1" class="example-tab-pane active">
+                            <p class="mb-2">李明感到十分 <span class="bg-red-100 text-red-800 rounded px-1 cursor-pointer" onclick="pronounceWord('anxious')">anxious</span>（焦虑的），因为他即将参加人生中第一次重要的 <span class="bg-blue-100 text-blue-800 rounded px-1 cursor-pointer" onclick="pronounceWord('interview')">interview</span>（面试）。他反复 <span class="bg-green-100 text-green-800 rounded px-1 cursor-pointer" onclick="pronounceWord('rehearse')">rehearse</span>（排练）着自己准备好的自我介绍。</p>
+                            <p class="mb-2">公司大楼看起来十分 <span class="bg-yellow-100 text-yellow-800 rounded px-1 cursor-pointer" onclick="pronounceWord('intimidating')">intimidating</span>（令人生畏的），但他决心不让自己被 <span class="bg-red-100 text-red-800 rounded px-1 cursor-pointer" onclick="pronounceWord('overwhelm')">overwhelm</span>（压垮）。他穿着最好的 <span class="bg-blue-100 text-blue-800 rounded px-1 cursor-pointer" onclick="pronounceWord('attire')">attire</span>（服装），希望能给面试官留下好印象。</p>
+                            <p class="mb-2">面试官问了一些 <span class="bg-purple-100 text-purple-800 rounded px-1 cursor-pointer" onclick="pronounceWord('complex')">complex</span>（复杂的）问题，李明尽力 <span class="bg-green-100 text-green-800 rounded px-1 cursor-pointer" onclick="pronounceWord('articulate')">articulate</span>（清楚表达）自己的想法。面试结束时，面试官对他的 <span class="bg-yellow-100 text-yellow-800 rounded px-1 cursor-pointer" onclick="pronounceWord('perseverance')">perseverance</span>（毅力）表示赞赏，还提到他的回答非常 <span class="bg-blue-100 text-blue-800 rounded px-1 cursor-pointer" onclick="pronounceWord('comprehensive')">comprehensive</span>（全面的）。</p>
+                            <p class="mb-2">这次经历让李明更加 <span class="bg-pink-100 text-pink-800 rounded px-1 cursor-pointer" onclick="pronounceWord('confident')">confident</span>（自信的）。他意识到自己需要不断 <span class="bg-indigo-100 text-indigo-800 rounded px-1 cursor-pointer" onclick="pronounceWord('enhance')">enhance</span>（提高）专业技能，保持 <span class="bg-green-100 text-green-800 rounded px-1 cursor-pointer" onclick="pronounceWord('enthusiasm')">enthusiasm</span>（热情）和 <span class="bg-blue-100 text-blue-800 rounded px-1 cursor-pointer" onclick="pronounceWord('dedication')">dedication</span>（奉献精神）。他相信这种 <span class="bg-purple-100 text-purple-800 rounded px-1 cursor-pointer" onclick="pronounceWord('attitude')">attitude</span>（态度）最终会带来 <span class="bg-yellow-100 text-yellow-800 rounded px-1 cursor-pointer" onclick="pronounceWord('opportunity')">opportunity</span>（机会）和 <span class="bg-red-100 text-red-800 rounded px-1 cursor-pointer" onclick="pronounceWord('success')">success</span>（成功）。</p>
+                        </div>
+                        
+                        <!-- 中英对照 -->
+                        <div id="example-tab2" class="example-tab-pane hidden">
+                            <p class="mb-2">李明感到十分 <span class="bg-red-100 text-red-800 rounded px-1 cursor-pointer" onclick="pronounceWord('anxious')">anxious</span> <span class="text-blue-600">(焦虑的)</span>，因为他即将参加人生中第一次重要的 <span class="bg-blue-100 text-blue-800 rounded px-1 cursor-pointer" onclick="pronounceWord('interview')">interview</span> <span class="text-blue-600">(面试)</span>。</p>
+                            <p class="mb-2">他反复 <span class="bg-green-100 text-green-800 rounded px-1 cursor-pointer" onclick="pronounceWord('rehearse')">rehearse</span> <span class="text-blue-600">(排练)</span> 着自己准备好的自我介绍。公司大楼看起来十分 <span class="bg-yellow-100 text-yellow-800 rounded px-1 cursor-pointer" onclick="pronounceWord('intimidating')">intimidating</span> <span class="text-blue-600">(令人生畏的)</span>。</p>
+                            <p class="mb-2">他不想让自己被 <span class="bg-red-100 text-red-800 rounded px-1 cursor-pointer" onclick="pronounceWord('overwhelm')">overwhelm</span> <span class="text-blue-600">(压垮)</span>。他穿着最好的 <span class="bg-blue-100 text-blue-800 rounded px-1 cursor-pointer" onclick="pronounceWord('attire')">attire</span> <span class="text-blue-600">(服装)</span>。</p>
+                            <p class="mb-2">面试官问了一些 <span class="bg-purple-100 text-purple-800 rounded px-1 cursor-pointer" onclick="pronounceWord('complex')">complex</span> <span class="text-blue-600">(复杂的)</span> 问题，李明尽力 <span class="bg-green-100 text-green-800 rounded px-1 cursor-pointer" onclick="pronounceWord('articulate')">articulate</span> <span class="text-blue-600">(清楚表达)</span> 自己的想法。</p>
+                            <p class="mb-2">他展现出了很强的 <span class="bg-yellow-100 text-yellow-800 rounded px-1 cursor-pointer" onclick="pronounceWord('perseverance')">perseverance</span> <span class="text-blue-600">(毅力)</span> 和 <span class="bg-pink-100 text-pink-800 rounded px-1 cursor-pointer" onclick="pronounceWord('confidence')">confidence</span> <span class="text-blue-600">(自信)</span>，回答非常 <span class="bg-blue-100 text-blue-800 rounded px-1 cursor-pointer" onclick="pronounceWord('comprehensive')">comprehensive</span> <span class="text-blue-600">(全面的)</span>。</p>
+                        </div>
+                        
+                        <!-- 单词列表 -->
+                        <div id="example-tab3" class="example-tab-pane hidden">
+                            <div class="flex justify-between border-b pb-2 mb-2">
+                                <span class="font-semibold text-gray-800 cursor-pointer" onclick="pronounceWord('anxious')">anxious</span>
+                                <span class="text-gray-600">焦虑的，担忧的</span>
+                            </div>
+                            <div class="flex justify-between border-b pb-2 mb-2">
+                                <span class="font-semibold text-gray-800 cursor-pointer" onclick="pronounceWord('interview')">interview</span>
+                                <span class="text-gray-600">面试，采访</span>
+                            </div>
+                            <div class="flex justify-between border-b pb-2 mb-2">
+                                <span class="font-semibold text-gray-800 cursor-pointer" onclick="pronounceWord('rehearse')">rehearse</span>
+                                <span class="text-gray-600">排练，练习</span>
+                            </div>
+                            <div class="flex justify-between border-b pb-2 mb-2">
+                                <span class="font-semibold text-gray-800 cursor-pointer" onclick="pronounceWord('intimidating')">intimidating</span>
+                                <span class="text-gray-600">令人生畏的</span>
+                            </div>
+                            <div class="flex justify-between border-b pb-2 mb-2">
+                                <span class="font-semibold text-gray-800 cursor-pointer" onclick="pronounceWord('overwhelm')">overwhelm</span>
+                                <span class="text-gray-600">压垮，淹没</span>
+                            </div>
+                            <div class="flex justify-between border-b pb-2 mb-2">
+                                <span class="font-semibold text-gray-800 cursor-pointer" onclick="pronounceWord('attire')">attire</span>
+                                <span class="text-gray-600">服装，着装</span>
+                            </div>
+                            <div class="flex justify-between border-b pb-2 mb-2">
+                                <span class="font-semibold text-gray-800 cursor-pointer" onclick="pronounceWord('complex')">complex</span>
+                                <span class="text-gray-600">复杂的，综合的</span>
+                            </div>
+                            <div class="flex justify-between border-b pb-2 mb-2">
+                                <span class="font-semibold text-gray-800 cursor-pointer" onclick="pronounceWord('articulate')">articulate</span>
+                                <span class="text-gray-600">清楚表达，明确说明</span>
+                            </div>
+                            <div class="flex justify-between border-b pb-2 mb-2">
+                                <span class="font-semibold text-gray-800 cursor-pointer" onclick="pronounceWord('perseverance')">perseverance</span>
+                                <span class="text-gray-600">毅力，坚持不懈</span>
+                            </div>
+                            <div class="flex justify-between border-b pb-2 mb-2">
+                                <span class="font-semibold text-gray-800 cursor-pointer" onclick="pronounceWord('comprehensive')">comprehensive</span>
+                                <span class="text-gray-600">全面的，综合的</span>
+                            </div>
+                        </div>
+                        
+                        <!-- 填空测试 -->
+                        <div id="example-tab4" class="example-tab-pane hidden">
+                            <p class="mb-2">李明感到十分 <input type="text" class="border-b-2 border-gray-400 px-2 w-24 text-center" data-correct-answer="anxious" oninput="checkExampleAnswer(this)"/>，因为他即将参加人生中第一次重要的 <input type="text" class="border-b-2 border-gray-400 px-2 w-24 text-center" data-correct-answer="interview" oninput="checkExampleAnswer(this)"/>。</p>
+                            <p class="mb-2">他反复 <input type="text" class="border-b-2 border-gray-400 px-2 w-24 text-center" data-correct-answer="rehearse" oninput="checkExampleAnswer(this)"/> 着自己准备好的自我介绍。公司大楼看起来十分 <input type="text" class="border-b-2 border-gray-400 px-2 w-24 text-center" data-correct-answer="intimidating" oninput="checkExampleAnswer(this)"/>。</p>
+                            <p class="mb-2">但他决心不让自己被 <input type="text" class="border-b-2 border-gray-400 px-2 w-24 text-center" data-correct-answer="overwhelm" oninput="checkExampleAnswer(this)"/>。他穿着最好的 <input type="text" class="border-b-2 border-gray-400 px-2 w-24 text-center" data-correct-answer="attire" oninput="checkExampleAnswer(this)"/>。</p>
+                            <p class="mt-4 mb-2 text-sm text-gray-500">提示: 可以尝试输入单词 anxious, interview, rehearse, intimidating, overwhelm, attire</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div id="loading" class="hidden text-center my-8">
                 <div class="loader inline-block"></div>
                 <p class="text-gray-600 mt-4">AI 正在奋笔疾书中，请稍候...</p>
             </div>
-            <div id="output" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <!-- Card 1: Story Mode -->
-                <div class="card rounded-2xl p-6">
-                    <div id="card1-content" class="card-content bg-white p-4 border border-gray-200 rounded-lg">
-                        <h2 class="text-xl font-bold text-red-500 mb-4 text-center">模式一：爽文带背</h2>
-                        <p id="story-output" class="text-gray-700 leading-relaxed"></p>
-                    </div>
-                    <button onclick="downloadCard('card1-content', '爽文带背.png')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-900 transition-colors">下载图片</button>
+            <div id="output" class="hidden">
+                <!-- Tab Navigation -->
+                <div class="flex border-b border-gray-200 mb-6">
+                    <button class="tab-btn active px-4 py-2 text-sm font-medium text-red-500 border-b-2 border-red-500" data-tab="card1">
+                        爽文带背
+                    </button>
+                    <button class="tab-btn px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700" data-tab="card2">
+                        中英对照
+                    </button>
+                    <button class="tab-btn px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700" data-tab="card3">
+                        单词列表
+                    </button>
+                    <button class="tab-btn px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700" data-tab="card4">
+                        填空测试
+                    </button>
                 </div>
-                <!-- Card 2: Study Mode -->
-                <div class="card rounded-2xl p-6">
-                    <div id="card2-content" class="card-content bg-white p-4 border border-gray-200 rounded-lg">
-                        <h2 class="text-xl font-bold text-blue-500 mb-4 text-center">模式二：中英对照</h2>
-                        <p id="study-output" class="text-gray-700 leading-relaxed"></p>
+                
+                <!-- Tab Content -->
+                <div class="tab-content">
+                    <!-- Card 1: Story Mode -->
+                    <div id="card1" class="tab-pane active">
+                        <div class="card rounded-2xl p-6">
+                            <div id="card1-content" class="card-content bg-white p-6 border border-gray-200 rounded-lg min-h-96">
+                                <h2 class="text-2xl font-bold text-red-500 mb-6 text-center">模式一：爽文带背</h2>
+                                <p id="story-output" class="text-gray-700 leading-relaxed text-base"></p>
+                            </div>
+                            <button onclick="downloadCard('card1-content', '爽文带背.png')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-900 transition-colors">下载图片</button>
+                        </div>
                     </div>
-                    <button onclick="downloadCard('card2-content', '中英对照.png')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-900 transition-colors">下载图片</button>
-                </div>
-                <!-- Card 3: Vocab List -->
-                <div class="card rounded-2xl p-6">
-                    <div id="card3-content" class="card-content bg-white p-4 border border-gray-200 rounded-lg">
-                        <h2 class="text-xl font-bold text-green-500 mb-4 text-center">模式三：单词列表</h2>
-                        <div id="vocab-output" class="space-y-3"></div>
+                    
+                    <!-- Card 2: Study Mode -->
+                    <div id="card2" class="tab-pane hidden">
+                        <div class="card rounded-2xl p-6">
+                            <div id="card2-content" class="card-content bg-white p-6 border border-gray-200 rounded-lg min-h-96">
+                                <h2 class="text-2xl font-bold text-blue-500 mb-6 text-center">模式二：中英对照</h2>
+                                <p id="study-output" class="text-gray-700 leading-relaxed text-base"></p>
+                            </div>
+                            <button onclick="downloadCard('card2-content', '中英对照.png')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-900 transition-colors">下载图片</button>
+                        </div>
                     </div>
-                    <button onclick="downloadCard('card3-content', '单词列表.png')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-900 transition-colors">下载图片</button>
-                </div>
-                <!-- Card 4: Test Mode -->
-                <div class="card rounded-2xl p-6">
-                    <div id="card4-content" class="card-content bg-white p-4 border border-gray-200 rounded-lg">
-                        <h2 class="text-xl font-bold text-purple-500 mb-4 text-center">模式四：填空测试</h2>
-                        <div id="test-output" class="text-gray-700 leading-relaxed"></div>
+                    
+                    <!-- Card 3: Vocab List -->
+                    <div id="card3" class="tab-pane hidden">
+                        <div class="card rounded-2xl p-6">
+                            <div id="card3-content" class="card-content bg-white p-6 border border-gray-200 rounded-lg min-h-96">
+                                <h2 class="text-2xl font-bold text-green-500 mb-6 text-center">模式三：单词列表</h2>
+                                <div id="vocab-output" class="space-y-4"></div>
+                            </div>
+                            <button onclick="downloadCard('card3-content', '单词列表.png')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-900 transition-colors">下载图片</button>
+                        </div>
                     </div>
-                     <button onclick="downloadCard('card4-content', '填空测试.png')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-900 transition-colors">下载图片</button>
+                    
+                    <!-- Card 4: Test Mode -->
+                    <div id="card4" class="tab-pane hidden">
+                        <div class="card rounded-2xl p-6">
+                            <div id="card4-content" class="card-content bg-white p-6 border border-gray-200 rounded-lg min-h-96">
+                                <h2 class="text-2xl font-bold text-purple-500 mb-6 text-center">模式四：填空测试</h2>
+                                <div id="test-output" class="text-gray-700 leading-relaxed text-base"></div>
+                            </div>
+                            <button onclick="downloadCard('card4-content', '填空测试.png')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-900 transition-colors">下载图片</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div id="error-message" class="hidden text-center my-8 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg" role="alert">
@@ -90,5 +317,41 @@
     </div>
 
     <script src="js/main.js"></script>
+
+    <!-- 调试脚本 -->
+    <script>
+        console.log('=== HTML调试脚本开始 ===');
+        console.log('页面加载时间:', new Date().toLocaleString());
+
+        // 检查关键DOM元素
+        window.addEventListener('load', () => {
+            console.log('=== 页面完全加载完成 ===');
+            console.log('word-list-container:', document.getElementById('word-list-container'));
+            console.log('theme-container:', document.getElementById('theme-container'));
+            console.log('custom-words:', document.getElementById('custom-words'));
+            console.log('generate-btn:', document.getElementById('generate-btn'));
+
+            // 检查main.js是否加载
+            console.log('wordLists变量:', typeof wordLists !== 'undefined' ? wordLists : '未定义');
+            console.log('storyThemes变量:', typeof storyThemes !== 'undefined' ? storyThemes : '未定义');
+
+            // 手动测试API
+            setTimeout(async () => {
+                console.log('=== 手动测试API ===');
+                try {
+                    const response = await fetch('/api/words/categories');
+                    console.log('API响应状态:', response.status, response.statusText);
+                    const data = await response.json();
+                    console.log('API返回数据:', data);
+                    console.log('数据长度:', data.length);
+                } catch (error) {
+                    console.error('API测试失败:', error);
+                }
+            }, 2000);
+        });
+    </script>
 </body>
 </html>
+
+
+

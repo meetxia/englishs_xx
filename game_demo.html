@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英语启蒙小游戏合集 (Gemini AI版)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --primary-bg: #5D54A4;
+            --secondary-bg: #9B59B6;
+            --accent-1: #FC466B;
+            --accent-2: #3F5EFB;
+            --accent-3: #F7B733;
+            --gemini-btn: #8E44AD;
+            --text-light: #FFFFFF;
+            --text-dark: #3D3D3D;
+            --success: #2ECC71;
+            --error: #E74C3C;
+            --font-family: 'Nunito', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background: linear-gradient(135deg, var(--primary-bg) 0%, var(--secondary-bg) 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: var(--text-dark);
+        }
+
+        .header {
+            text-align: center;
+            color: var(--text-light);
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: clamp(2em, 5vw, 3em);
+            font-weight: 900;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.25);
+        }
+
+        .game-selector {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .game-btn {
+            background: var(--accent-1);
+            color: var(--text-light);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 700;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            border-bottom: 4px solid rgba(0,0,0,0.2);
+        }
+
+        .game-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+        }
+        
+        .game-btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .game-btn.active {
+            background: var(--accent-2);
+            border-bottom-color: rgba(0,0,0,0.3);
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 25px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+            max-width: 800px;
+            width: 95%;
+            min-height: 500px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game {
+            display: none;
+            animation: fadeIn 0.5s ease;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .game.active {
+            display: flex;
+        }
+
+        .game-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .game-title {
+            color: var(--primary-bg);
+            font-size: 2.2em;
+            font-weight: 900;
+            margin-bottom: 10px;
+        }
+
+        .score-section {
+            display: flex;
+            gap: 20px;
+            font-size: 1.2em;
+            font-weight: 700;
+        }
+        .score { color: var(--accent-1); }
+        .high-score { color: var(--accent-3); }
+
+        .level-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .level-btn {
+            padding: 8px 16px;
+            border: 2px solid var(--primary-bg);
+            border-radius: 20px;
+            background: transparent;
+            color: var(--primary-bg);
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .level-btn:hover {
+            background: var(--primary-bg);
+            color: var(--text-light);
+        }
+        .level-btn.active {
+            background: var(--primary-bg);
+            color: var(--text-light);
+            box-shadow: 0 0 10px rgba(93, 84, 164, 0.5);
+        }
+
+        .game-content {
+            min-height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+        }
+        
+        .placeholder-text {
+            text-align: center;
+            color: #666;
+            font-size: 1.2em;
+        }
+
+        /* What's Missing Game */
+        .cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 20px;
+            width: 100%;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #fff, #f0f0f0);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+
+        .card:hover {
+            transform: translateY(-8px) rotate(2deg);
+            box-shadow: 0 12px 28px rgba(0,0,0,0.15);
+        }
+
+        .card.hidden {
+            background: #bdc3c7;
+            color: transparent;
+            transform: scale(0.95);
+        }
+
+        .card-emoji { font-size: 3.5em; margin-bottom: 10px; line-height: 1; }
+        .card-word { font-size: 1.3em; font-weight: 700; color: var(--text-dark); }
+
+        /* Memory Game */
+        .memory-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            max-width: 600px;
+            margin: 0 auto;
+            perspective: 1000px;
+            width: 100%;
+        }
+
+        .memory-card {
+            aspect-ratio: 1;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            cursor: pointer;
+        }
+        
+        .memory-card .front, .memory-card .back {
+            position: absolute; width: 100%; height: 100%;
+            backface-visibility: hidden;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .memory-card .back {
+            background: linear-gradient(135deg, var(--accent-1), #d65a50);
+            color: var(--text-light); font-size: 2em;
+        }
+
+        .memory-card .front {
+            background: linear-gradient(135deg, var(--accent-2), #3ca99d);
+            color: var(--text-light); font-size: 1.2em;
+            transform: rotateY(180deg); padding: 5px; text-align: center;
+        }
+
+        .memory-card.flipped { transform: rotateY(180deg); }
+        .memory-card.matched {
+            transform: rotateY(180deg) scale(1.05);
+            pointer-events: none;
+        }
+        .memory-card.matched .front { background: linear-gradient(135deg, var(--success), #27ae60); }
+
+        /* Sentence Builder */
+        .sentence-builder-layout { width: 100%; }
+        .word-bank {
+            background: rgba(0,0,0,0.05); border-radius: 15px;
+            padding: 20px; margin-bottom: 20px;
+        }
+        .word-bank h3 { margin-bottom: 15px; color: var(--text-dark); }
+        .word-tiles { display: flex; flex-wrap: wrap; gap: 10px; min-height: 40px; }
+        .word-tile {
+            background: linear-gradient(135deg, var(--accent-3), #e4a62e);
+            padding: 10px 18px; border-radius: 20px; cursor: grab;
+            user-select: none; font-weight: 700; color: var(--text-dark);
+            transition: all 0.3s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .word-tile:hover { transform: scale(1.08); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+        .word-tile.dragging { opacity: 0.5; cursor: grabbing; transform: scale(0.9); }
+        .sentence-area {
+            background: rgba(46, 204, 113, 0.15);
+            border: 3px dashed var(--success); border-radius: 15px;
+            padding: 20px; min-height: 80px; display: flex;
+            align-items: center; gap: 10px; flex-wrap: wrap;
+            transition: all 0.3s ease;
+        }
+        .sentence-area.drag-over {
+            background: rgba(46, 204, 113, 0.3);
+            border-color: #27ae60; transform: scale(1.02);
+        }
+
+        .control-buttons {
+            text-align: center; margin-top: 25px; display: flex;
+            justify-content: center; gap: 15px; flex-wrap: wrap;
+        }
+        .control-btn {
+            background: linear-gradient(135deg, var(--primary-bg), var(--secondary-bg));
+            color: var(--text-light); border: none; padding: 12px 24px;
+            border-radius: 25px; cursor: pointer; font-size: 1em;
+            font-weight: 700; transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .control-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.25); }
+        .gemini-btn {
+            background: linear-gradient(135deg, var(--gemini-btn), var(--secondary-bg));
+        }
+
+        .feedback {
+            text-align: center; font-size: 1.2em; font-weight: 700;
+            margin-top: 20px; padding: 12px; border-radius: 10px;
+            animation: fadeIn 0.3s;
+        }
+        .feedback.correct { background: var(--success); color: var(--text-light); }
+        .feedback.incorrect { background: var(--error); color: var(--text-light); }
+        .feedback.info { background: var(--accent-2); color: var(--text-light); }
+        .feedback.gemini {
+            background: linear-gradient(135deg, var(--gemini-btn), var(--primary-bg));
+            color: var(--text-light);
+            text-align: left;
+            white-space: pre-wrap;
+        }
+
+        /* Loader for Gemini API */
+        #loader {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(5px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            flex-direction: column;
+            gap: 15px;
+            font-size: 1.5em;
+            color: var(--primary-bg);
+            font-weight: 700;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(0,0,0,0.1);
+            border-top-color: var(--gemini-btn);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .memory-grid { grid-template-columns: repeat(3, 1fr); }
+            .cards-container { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎮 英语启蒙小游戏</h1>
+        <p>专业版 - Gemini AI 增强</p>
+    </div>
+    
+    <div class="game-selector">
+        <button id="btn-show-missing" class="game-btn active">🕵️ What's Missing</button>
+        <button id="btn-show-memory" class="game-btn">🧠 记忆配对</button>
+        <button id="btn-show-sentence" class="game-btn">🔤 造句游戏</button>
+    </div>
+    
+    <div class="game-container">
+        <div id="loader">
+            <div class="spinner"></div>
+            <p>✨ AI 正在创作中...</p>
+        </div>
+        <div id="loading-placeholder" class="placeholder-text">
+            <p>🚀 正在加载游戏，请稍候...</p>
+        </div>
+
+        <!-- What's Missing Game -->
+        <div id="missing" class="game">
+            <div class="game-header">
+                <h2 class="game-title">🕵️ What's Missing?</h2>
+                <div class="score-section">
+                    <div class="score">分数: <span id="missing-score">0</span></div>
+                    <div class="high-score">最高分: <span id="missing-high-score">0</span></div>
+                </div>
+            </div>
+            <div class="level-selector" id="missing-level-selector"></div>
+            <div class="game-content" id="missing-game-content">
+                <div class="cards-container" id="cards-container"></div>
+            </div>
+            <div class="control-buttons">
+                <button id="btn-start-missing" class="control-btn">开始新游戏</button>
+                <button id="missing-story-btn" class="control-btn gemini-btn" style="display: none;">✨ AI 创作故事</button>
+            </div>
+            <div id="missing-feedback" class="feedback" style="display: none;"></div>
+        </div>
+        
+        <!-- Memory Game -->
+        <div id="memory" class="game">
+            <div class="game-header">
+                <h2 class="game-title">🧠 记忆配对</h2>
+                <div class="score-section">
+                    <div class="score">分数: <span id="memory-score">0</span></div>
+                    <div class="high-score">最高分: <span id="memory-high-score">0</span></div>
+                </div>
+            </div>
+            <div class="level-selector" id="memory-level-selector"></div>
+             <div class="game-content" id="memory-game-content">
+                <div class="memory-grid" id="memory-grid"></div>
+            </div>
+            <div class="control-buttons">
+                <button id="btn-start-memory" class="control-btn">开始新游戏</button>
+            </div>
+            <div id="memory-feedback" class="feedback" style="display: none;"></div>
+        </div>
+        
+        <!-- Sentence Builder Game -->
+        <div id="sentence" class="game">
+            <div class="game-header">
+                <h2 class="game-title">🔤 造句游戏</h2>
+                 <div class="score-section">
+                    <div class="score">分数: <span id="sentence-score">0</span></div>
+                    <div class="high-score">最高分: <span id="sentence-high-score">0</span></div>
+                </div>
+            </div>
+            <div class="level-selector" id="sentence-level-selector"></div>
+            <div class="game-content" id="sentence-game-content">
+                <div class="sentence-builder-layout">
+                    <div class="word-bank">
+                        <h3>单词库：</h3>
+                        <div class="word-tiles" id="word-tiles"></div>
+                    </div>
+                    <div class="sentence-area" id="sentence-area"></div>
+                </div>
+            </div>
+            <div class="control-buttons">
+                <button id="btn-check-sentence" class="control-btn">检查答案</button>
+                <button id="btn-clear-sentence" class="control-btn">清空</button>
+                <button id="btn-next-sentence" class="control-btn">下一题</button>
+                <button id="sentence-explain-btn" class="control-btn gemini-btn" style="display: none;">✨ AI 讲解语法</button>
+            </div>
+            <div id="sentence-feedback" class="feedback" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- Firebase SDK and Setup ---
+        import { initializeApp as initializeFirebaseApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Global State and Config ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, auth, userId;
+        let currentGame = 'missing';
+        let currentLevel = 'easy';
+        const scores = { missing: 0, memory: 0, sentence: 0 };
+        const highScores = { missing: {}, memory: {}, sentence: {} };
+        const gameStates = {
+            missing: { cards: [], hiddenIndex: -1, isGuessing: false, isSpeaking: false },
+            memory: { cards: [], flippedIndices: [], matchedPairs: 0, isChecking: false },
+            sentence: { currentSentenceIndex: 0, placedWords: [], lastCorrectSentence: '' }
+        };
+
+        const gameData = {
+            levels: {
+                easy: {
+                    label: '基础',
+                    words: [
+                        {emoji: '🐱', word: 'cat'}, {emoji: '🐶', word: 'dog'}, {emoji: '🍎', word: 'apple'},
+                        {emoji: '🌞', word: 'sun'}, {emoji: '🏠', word: 'house'}, {emoji: '🚗', word: 'car'},
+                        {emoji: '📚', word: 'book'}, {emoji: '🎈', word: 'ball'}, {emoji: '🍌', word: 'banana'},
+                    ],
+                    sentences: [
+                        {words: ['a', 'cat'], target: 'a cat'},
+                        {words: ['I', 'see', 'a', 'dog'], target: 'I see a dog'},
+                        {words: ['a', 'red', 'apple'], target: 'a red apple'},
+                    ]
+                },
+                medium: {
+                    label: '进阶',
+                    words: [
+                        {emoji: '🐘', word: 'elephant'}, {emoji: '⭐', word: 'star'}, {emoji: '🌳', word: 'tree'}, 
+                        {emoji: '🐟', word: 'fish'}, {emoji: '🍓', word: 'strawberry'}, {emoji: '🚲', word: 'bicycle'},
+                        {emoji: '💻', word: 'computer'}, {emoji: '🎸', word: 'guitar'}, {emoji: '🍕', word: 'pizza'}
+                    ],
+                    sentences: [
+                        {words: ['This', 'is', 'my', 'house'], target: 'This is my house'},
+                        {words: ['The', 'sun', 'is', 'yellow'], target: 'The sun is yellow'},
+                        {words: ['I', 'like', 'to', 'read'], target: 'I like to read'}
+                    ]
+                },
+                hard: {
+                    label: '挑战',
+                    words: [
+                        {emoji: '🚀', word: 'rocket'}, {emoji: '🌍', word: 'earth'}, {emoji: '🔬', word: 'microscope'},
+                        {emoji: '🎨', word: 'palette'}, {emoji: '🏆', word: 'trophy'}, {emoji: '💡', word: 'idea'},
+                        {emoji: '🧭', word: 'compass'}, {emoji: '🧠', 'word': 'brain'}, {emoji: '🧬', 'word': 'DNA'}
+                    ],
+                    sentences: [
+                        {words: ['I', 'want', 'to', 'be', 'an', 'astronaut'], target: 'I want to be an astronaut'},
+                        {words: ['Learning', 'English', 'is', 'fun'], target: 'Learning English is fun'},
+                        {words: ['Practice', 'makes', 'perfect'], target: 'Practice makes perfect'}
+                    ]
+                }
+            }
+        };
+
+        // --- Gemini API Integration ---
+        const loader = document.getElementById('loader');
+        
+        async function callGemini(prompt) {
+            loader.style.display = 'flex';
+            let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+            const payload = { contents: chatHistory };
+            const apiKey = ""; // Leave blank, handled by the environment
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API call failed with status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    return result.candidates[0].content.parts[0].text;
+                } else {
+                    console.error("Unexpected API response structure:", result);
+                    return "Sorry, I couldn't think of anything right now. Please try again!";
+                }
+            } catch (error) {
+                console.error("Error calling Gemini API:", error);
+                return "An error occurred while contacting the AI. Please check the console.";
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        async function generateStory() {
+            const words = gameStates.missing.cards.map(c => c.word).join(', ');
+            const prompt = `Write a very short, simple story for a child learning English. The story must use these words: ${words}. The story should be fun, easy to understand, and only a few sentences long.`;
+            const story = await callGemini(prompt);
+            showFeedback('missing', story, 'gemini');
+        }
+
+        async function explainSentence() {
+            const sentence = gameStates.sentence.lastCorrectSentence;
+            if (!sentence) return;
+            const prompt = `You are a friendly English teacher for kids. Explain the grammar of this simple English sentence: "${sentence}". Keep your explanation very short, simple, and encouraging. Use one or two emojis.`;
+            const explanation = await callGemini(prompt);
+            showFeedback('sentence', explanation, 'gemini');
+        }
+
+        // --- Core Engines (Audio, Speech, Effects) ---
+        const synth = new Tone.Synth().toDestination();
+        const playCorrectSound = () => synth.triggerAttackRelease("C5", "8n", Tone.now());
+        const playIncorrectSound = () => synth.triggerAttackRelease("C3", "8n", Tone.now());
+        const playFlipSound = () => new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 1 } }).toDestination().triggerAttackRelease("A4", "16n");
+        const playWinSound = () => new Tone.PolySynth(Tone.Synth).toDestination().triggerAttackRelease(["C4", "E4", "G4", "C5"], "8n", Tone.now());
+        const launchConfetti = () => confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
+
+        const speak = (text, onEndCallback) => {
+            if ('speechSynthesis' in window) {
+                speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US';
+                if (onEndCallback) {
+                    utterance.onend = onEndCallback;
+                }
+                speechSynthesis.speak(utterance);
+            } else {
+                if (onEndCallback) onEndCallback();
+            }
+        };
+        
+        function speakWordsSequentially(words, onComplete) {
+            let index = 0;
+            gameStates.missing.isSpeaking = true;
+            function next() {
+                if (index < words.length) {
+                    speak(words[index], next);
+                    index++;
+                } else {
+                    gameStates.missing.isSpeaking = false;
+                    if (onComplete) onComplete();
+                }
+            }
+            next();
+        }
+
+        // --- High Score Management ---
+        async function saveHighScore(game, level, score) {
+            if (!db || !userId) return;
+            const currentHighScore = highScores[game][level] || 0;
+            if (score > currentHighScore) {
+                highScores[game][level] = score;
+                const docRef = doc(db, "artifacts", appId, "public/data/highscores", `${game}-${level}`);
+                try {
+                    await setDoc(docRef, { score: score, updatedBy: userId });
+                    console.log(`New high score for ${game}-${level}: ${score}`);
+                } catch (e) {
+                    console.error("Error saving high score: ", e);
+                }
+            }
+        }
+
+        function listenToHighScores() {
+            if (!db) return;
+            Object.keys(gameData.levels).forEach(levelId => {
+                ['missing', 'memory', 'sentence'].forEach(gameId => {
+                    const docRef = doc(db, "artifacts", appId, "public/data/highscores", `${gameId}-${levelId}`);
+                    onSnapshot(docRef, (docSnap) => {
+                        const score = docSnap.exists() ? docSnap.data().score : 0;
+                        highScores[gameId][levelId] = score;
+                        if (currentGame === gameId && currentLevel === levelId) {
+                            updateHighScoreDisplay();
+                        }
+                    }, (error) => console.error(`Error listening to high score for ${gameId}-${levelId}:`, error));
+                });
+            });
+        }
+
+        // --- Game Logic ---
+        function showGame(gameId) {
+            currentGame = gameId;
+            currentLevel = 'easy';
+            document.querySelectorAll('.game').forEach(game => game.classList.remove('active'));
+            document.querySelectorAll('.game-btn').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById(gameId).classList.add('active');
+            document.getElementById(`btn-show-${gameId}`).classList.add('active');
+            
+            renderLevelSelectors(gameId);
+            
+            const gameFunctionMap = {
+                missing: startMissingGame,
+                memory: startMemoryGame,
+                sentence: initSentenceGame
+            };
+            gameFunctionMap[gameId]();
+        }
+        
+        function resetGame(gameId) {
+            scores[gameId] = 0;
+            updateScoreDisplay(gameId);
+            updateActiveLevelButton(gameId);
+            document.getElementById(`${gameId}-feedback`).style.display = 'none';
+            // Hide Gemini buttons
+            document.getElementById('missing-story-btn').style.display = 'none';
+            document.getElementById('sentence-explain-btn').style.display = 'none';
+        }
+
+        function startMissingGame() {
+            resetGame('missing');
+            gameStates.missing = { cards: [], hiddenIndex: -1, isGuessing: false, isSpeaking: false };
+            
+            const container = document.getElementById('cards-container');
+            container.innerHTML = '';
+            
+            const words = gameData.levels[currentLevel].words;
+            const selectedCards = [...words].sort(() => 0.5 - Math.random()).slice(0, 6);
+            gameStates.missing.cards = selectedCards;
+            
+            selectedCards.forEach((item) => {
+                const card = createCard(item);
+                card.onclick = (e) => {
+                    const cardIndex = Array.from(e.currentTarget.parentNode.children).indexOf(e.currentTarget);
+                    guessCard(cardIndex, card);
+                }
+                container.appendChild(card);
+            });
+            
+            const wordsToSpeak = selectedCards.map(c => c.word);
+            speakWordsSequentially(wordsToSpeak, () => {
+                setTimeout(() => {
+                    hideRandomCard();
+                    gameStates.missing.isGuessing = true;
+                }, 1000);
+            });
+        }
+
+        function createCard(item) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `<div class="card-emoji">${item.emoji}</div><div class="card-word">${item.word}</div>`;
+            return card;
+        }
+
+        function hideRandomCard() {
+            const cards = document.querySelectorAll('#cards-container .card');
+            if (cards.length === 0) return;
+            const randomIndex = Math.floor(Math.random() * cards.length);
+            cards[randomIndex].classList.add('hidden');
+            cards[randomIndex].innerHTML = `<div class="card-emoji">❓</div><div class="card-word">???</div>`;
+            gameStates.missing.hiddenIndex = randomIndex;
+        }
+
+        function guessCard(index, cardElement) {
+            if (!gameStates.missing.isGuessing || gameStates.missing.isSpeaking) return;
+            
+            const correctWord = gameStates.missing.cards[gameStates.missing.hiddenIndex].word;
+
+            if (index === gameStates.missing.hiddenIndex) {
+                playCorrectSound(); launchConfetti();
+                scores.missing += 10;
+                updateScoreDisplay('missing');
+                saveHighScore('missing', currentLevel, scores.missing);
+                showFeedback('missing', `🎉 Correct! '${correctWord}' was missing!`, 'correct');
+                
+                cardElement.classList.remove('hidden');
+                cardElement.innerHTML = `<div class="card-emoji">${gameStates.missing.cards[index].emoji}</div><div class="card-word">${gameStates.missing.cards[index].word}</div>`;
+
+                gameStates.missing.isGuessing = false;
+                document.getElementById('missing-story-btn').style.display = 'inline-block'; // Show story button
+                setTimeout(startMissingGame, 3500); // Increased delay to allow story generation
+            } else {
+                playIncorrectSound();
+                showFeedback('missing', '❌ Not quite, try again!', 'incorrect');
+                cardElement.style.animation = 'shake 0.5s';
+                setTimeout(() => cardElement.style.animation = '', 500);
+            }
+        }
+
+        function startMemoryGame() {
+            resetGame('memory');
+            gameStates.memory = { cards: [], flippedIndices: [], matchedPairs: 0, isChecking: false };
+            
+            const grid = document.getElementById('memory-grid');
+            const words = gameData.levels[currentLevel].words;
+            const cardPairCount = { easy: 4, medium: 6, hard: 8 }[currentLevel];
+            const gridCols = { easy: 4, medium: 4, hard: 4 }[currentLevel];
+            grid.style.gridTemplateColumns = `repeat(${gridCols}, 1fr)`;
+
+            const selectedWords = [...words].sort(() => 0.5 - Math.random()).slice(0, cardPairCount);
+            const gameCards = [...selectedWords, ...selectedWords].sort(() => 0.5 - Math.random());
+            
+            gameStates.memory.cards = gameCards;
+            grid.innerHTML = '';
+            gameCards.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'memory-card';
+                card.innerHTML = `<div class="back">?</div><div class="front">${item.word}</div>`;
+                card.onclick = () => flipCard(index);
+                grid.appendChild(card);
+            });
+        }
+
+        function flipCard(index) {
+            const { flippedIndices, isChecking } = gameStates.memory;
+            const cardElements = document.querySelectorAll('#memory-grid .memory-card');
+            const card = cardElements[index];
+
+            if (isChecking || card.classList.contains('flipped') || flippedIndices.length >= 2) return;
+            
+            playFlipSound();
+            card.classList.add('flipped');
+            flippedIndices.push(index);
+            speak(gameStates.memory.cards[index].word);
+            
+            if (flippedIndices.length === 2) {
+                gameStates.memory.isChecking = true;
+                setTimeout(checkMatch, 1200);
+            }
+        }
+
+        function checkMatch() {
+            const { flippedIndices, cards } = gameStates.memory;
+            const [firstIndex, secondIndex] = flippedIndices;
+            const cardElements = document.querySelectorAll('#memory-grid .memory-card');
+            
+            if (cards[firstIndex].word === cards[secondIndex].word) {
+                playCorrectSound();
+                cardElements[firstIndex].classList.add('matched');
+                cardElements[secondIndex].classList.add('matched');
+                gameStates.memory.matchedPairs++;
+                scores.memory += 20;
+                updateScoreDisplay('memory');
+                
+                if (gameStates.memory.matchedPairs === cards.length / 2) {
+                    playWinSound(); launchConfetti();
+                    saveHighScore('memory', currentLevel, scores.memory);
+                    showFeedback('memory', '🎉 Congratulations! You found all pairs!', 'correct');
+                }
+            } else {
+                playIncorrectSound();
+                cardElements[firstIndex].classList.remove('flipped');
+                cardElements[secondIndex].classList.remove('flipped');
+            }
+            
+            gameStates.memory.flippedIndices = [];
+            gameStates.memory.isChecking = false;
+        }
+
+        function initSentenceGame() {
+            resetGame('sentence');
+            gameStates.sentence = { currentSentenceIndex: 0, placedWords: [], lastCorrectSentence: '' };
+            loadSentence();
+        }
+
+        function loadSentence() {
+            updateActiveLevelButton('sentence');
+            const { sentences } = gameData.levels[currentLevel];
+            const { currentSentenceIndex } = gameStates.sentence;
+
+            if (currentSentenceIndex >= sentences.length) {
+                showFeedback('sentence', '🏆 You completed all sentences for this level!', 'info');
+                document.getElementById('word-tiles').innerHTML = '';
+                document.getElementById('sentence-area').innerHTML = '';
+                return;
+            }
+
+            const sentenceData = sentences[currentSentenceIndex];
+            const wordTilesContainer = document.getElementById('word-tiles');
+            
+            clearSentence();
+            document.getElementById('sentence-feedback').style.display = 'none';
+            document.getElementById('sentence-explain-btn').style.display = 'none';
+
+            wordTilesContainer.innerHTML = '';
+            const shuffledWords = [...sentenceData.words].sort(() => Math.random() - 0.5);
+            
+            shuffledWords.forEach(word => {
+                const tile = document.createElement('div');
+                tile.className = 'word-tile';
+                tile.textContent = word;
+                tile.draggable = true;
+                tile.ondragstart = (e) => { e.dataTransfer.setData('text/plain', word); e.target.classList.add('dragging'); };
+                tile.ondragend = (e) => e.target.classList.remove('dragging');
+                wordTilesContainer.appendChild(tile);
+            });
+            
+            setupDropArea();
+        }
+
+        function setupDropArea() {
+            const sentenceArea = document.getElementById('sentence-area');
+            sentenceArea.ondragover = (e) => { e.preventDefault(); sentenceArea.classList.add('drag-over'); };
+            sentenceArea.ondragleave = () => sentenceArea.classList.remove('drag-over');
+            sentenceArea.ondrop = (e) => {
+                e.preventDefault();
+                sentenceArea.classList.remove('drag-over');
+                const word = e.dataTransfer.getData('text/plain');
+                addWordToSentence(word);
+            };
+        }
+
+        function addWordToSentence(word) {
+            const sentenceArea = document.getElementById('sentence-area');
+            const wordTilesContainer = document.getElementById('word-tiles');
+
+            const tileToRemove = Array.from(wordTilesContainer.children).find(t => t.textContent === word && !t.hidden);
+            if (tileToRemove) tileToRemove.hidden = true;
+
+            const wordElement = document.createElement('span');
+            wordElement.className = 'word-tile';
+            wordElement.textContent = word;
+            wordElement.onclick = () => removeWordFromSentence(wordElement);
+            sentenceArea.appendChild(wordElement);
+            
+            gameStates.sentence.placedWords.push(word);
+            playFlipSound(); speak(word);
+        }
+
+        function removeWordFromSentence(element) {
+            const word = element.textContent;
+            element.remove();
+
+            const wordTilesContainer = document.getElementById('word-tiles');
+            const tileToReturn = Array.from(wordTilesContainer.children).find(t => t.textContent === word && t.hidden);
+            if (tileToReturn) tileToReturn.hidden = false;
+            
+            const index = gameStates.sentence.placedWords.indexOf(word);
+            if (index > -1) gameStates.sentence.placedWords.splice(index, 1);
+        }
+
+        function checkSentence() {
+            const { currentSentenceIndex, placedWords } = gameStates.sentence;
+            const sentenceData = gameData.levels[currentLevel].sentences[currentSentenceIndex];
+            if (!sentenceData) return;
+            const userSentence = placedWords.join(' ');
+            
+            if (userSentence === sentenceData.target) {
+                playCorrectSound(); launchConfetti();
+                scores.sentence += 30;
+                updateScoreDisplay('sentence');
+                saveHighScore('sentence', currentLevel, scores.sentence);
+                showFeedback('sentence', `🎉 Correct!`, 'correct');
+                gameStates.sentence.lastCorrectSentence = userSentence;
+                document.getElementById('sentence-explain-btn').style.display = 'inline-block';
+            } else {
+                playIncorrectSound();
+                showFeedback('sentence', `❌ Not quite. The correct sentence is: "${sentenceData.target}"`, 'incorrect');
+                document.getElementById('sentence-explain-btn').style.display = 'none';
+            }
+        }
+
+        function clearSentence() {
+            gameStates.sentence.placedWords = [];
+            document.getElementById('sentence-area').innerHTML = '';
+            const wordTilesContainer = document.getElementById('word-tiles');
+            Array.from(wordTilesContainer.children).forEach(tile => tile.hidden = false);
+        }
+
+        function nextSentence() {
+            gameStates.sentence.currentSentenceIndex++;
+            loadSentence();
+        }
+
+        // --- UI and Helper Functions ---
+        function renderLevelSelectors(gameId) {
+            const selectorContainer = document.getElementById(`${gameId}-level-selector`);
+            selectorContainer.innerHTML = '';
+            Object.keys(gameData.levels).forEach(levelId => {
+                const level = gameData.levels[levelId];
+                const btn = document.createElement('button');
+                btn.className = 'level-btn';
+                btn.textContent = level.label;
+                btn.onclick = () => {
+                    currentLevel = levelId;
+                    const gameFunctionMap = {
+                        missing: startMissingGame,
+                        memory: startMemoryGame,
+                        sentence: initSentenceGame
+                    };
+                    gameFunctionMap[gameId]();
+                };
+                selectorContainer.appendChild(btn);
+            });
+        }
+
+        function updateActiveLevelButton(gameId) {
+            const selectorContainer = document.getElementById(`${gameId}-level-selector`);
+            if (!selectorContainer) return;
+            Array.from(selectorContainer.children).forEach(btn => {
+                btn.classList.toggle('active', gameData.levels[currentLevel].label === btn.textContent);
+            });
+        }
+
+        function updateScoreDisplay() {
+            document.getElementById(`${currentGame}-score`).textContent = scores[currentGame];
+            document.getElementById(`${currentGame}-high-score`).textContent = highScores[currentGame][currentLevel] || 0;
+        }
+
+        function showFeedback(gameId, message, type) {
+            const feedback = document.getElementById(`${gameId}-feedback`);
+            feedback.innerHTML = message; // Use innerHTML to render potential markdown
+            feedback.className = `feedback ${type}`;
+            feedback.style.display = 'block';
+        }
+        
+        function setupEventListeners() {
+            document.getElementById('btn-show-missing').onclick = () => showGame('missing');
+            document.getElementById('btn-show-memory').onclick = () => showGame('memory');
+            document.getElementById('btn-show-sentence').onclick = () => showGame('sentence');
+
+            document.getElementById('btn-start-missing').onclick = startMissingGame;
+            document.getElementById('missing-story-btn').onclick = generateStory;
+            
+            document.getElementById('btn-start-memory').onclick = startMemoryGame;
+
+            document.getElementById('btn-check-sentence').onclick = checkSentence;
+            document.getElementById('btn-clear-sentence').onclick = clearSentence;
+            document.getElementById('btn-next-sentence').onclick = nextSentence;
+            document.getElementById('sentence-explain-btn').onclick = explainSentence;
+        }
+
+        // --- Initialization ---
+        function initializeGameApp() {
+            console.log("Initializing app...");
+            document.getElementById('loading-placeholder').style.display = 'none';
+            document.body.addEventListener('click', () => Tone.start(), { once: true });
+            
+            setupEventListeners();
+            listenToHighScores();
+            showGame('missing');
+        }
+
+        // --- Firebase Auth Flow ---
+        (async () => {
+            try {
+                const app = initializeFirebaseApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        console.log("Authenticated User ID:", userId);
+                        initializeGameApp();
+                    }
+                });
+
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Firebase Initialization Error:", error);
+                document.getElementById('loading-placeholder').innerText = "Could not connect to database. High scores are disabled.";
+                initializeGameApp();
+            }
+        })();
+    </script>
+</body>
+</html>
