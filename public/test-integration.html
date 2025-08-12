@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML2IMG集成功能测试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@400;700&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-center mb-8">HTML2IMG集成功能测试</h1>
+        
+        <!-- 模拟英语卡片内容 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- 卡片1：爽文带背 -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div id="card1-content" class="card-content">
+                    <h2 class="text-2xl font-bold text-red-500 mb-4 text-center">模式一：爽文带背</h2>
+                    <p class="text-gray-700 leading-relaxed">
+                        李明感到十分 <span class="bg-red-100 text-red-800 rounded px-1">anxious</span>（焦虑的），因为他即将参加人生中第一次重要的 <span class="bg-blue-100 text-blue-800 rounded px-1">interview</span>（面试）。他反复 <span class="bg-green-100 text-green-800 rounded px-1">rehearse</span>（排练）着自己准备好的自我介绍。
+                    </p>
+                </div>
+                <button onclick="testDownload('card1-content', '爽文带背.png', 'story')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-900 transition-colors">
+                    下载图片
+                </button>
+            </div>
+
+            <!-- 卡片2：中英对照 -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div id="card2-content" class="card-content">
+                    <h2 class="text-2xl font-bold text-blue-500 mb-4 text-center">模式二：中英对照</h2>
+                    <p class="text-gray-700 leading-relaxed">
+                        李明感到十分 <span class="bg-red-100 text-red-800 rounded px-1">anxious</span> <span class="text-blue-600">(焦虑的)</span>，因为他即将参加人生中第一次重要的 <span class="bg-blue-100 text-blue-800 rounded px-1">interview</span> <span class="text-blue-600">(面试)</span>。
+                    </p>
+                </div>
+                <button onclick="testDownload('card2-content', '中英对照.png', 'bilingual')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-900 transition-colors">
+                    下载图片
+                </button>
+            </div>
+
+            <!-- 卡片3：单词列表 -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div id="card3-content" class="card-content">
+                    <h2 class="text-2xl font-bold text-green-500 mb-4 text-center">模式三：单词列表</h2>
+                    <div id="vocab-output" class="space-y-2">
+                        <div class="flex justify-between border-b pb-2">
+                            <span class="font-semibold text-gray-800">anxious</span>
+                            <span class="text-gray-600">焦虑的，担忧的</span>
+                        </div>
+                        <div class="flex justify-between border-b pb-2">
+                            <span class="font-semibold text-gray-800">interview</span>
+                            <span class="text-gray-600">面试，采访</span>
+                        </div>
+                        <div class="flex justify-between border-b pb-2">
+                            <span class="font-semibold text-gray-800">rehearse</span>
+                            <span class="text-gray-600">排练，练习</span>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="testDownload('card3-content', '单词列表.png', 'vocab')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-900 transition-colors">
+                    下载图片
+                </button>
+            </div>
+
+            <!-- 卡片4：填空测试 -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div id="card4-content" class="card-content">
+                    <h2 class="text-2xl font-bold text-purple-500 mb-4 text-center">模式四：填空测试</h2>
+                    <div id="test-output" class="text-gray-700 leading-relaxed">
+                        <p>李明感到十分 ______（焦虑的），因为他即将参加人生中第一次重要的 ______（面试）。</p>
+                        <p class="mt-2">他反复 ______ 着自己准备好的自我介绍。</p>
+                    </div>
+                </div>
+                <button onclick="testDownload('card4-content', '填空测试.png', 'test')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-900 transition-colors">
+                    下载图片
+                </button>
+            </div>
+        </div>
+
+        <!-- 测试按钮 -->
+        <div class="text-center space-y-4">
+            <button onclick="testSingleCard()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+                🎨 测试单个卡片编辑
+            </button>
+            <button onclick="testAllCards()" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors font-semibold">
+                📦 测试全部卡片编辑
+            </button>
+        </div>
+    </div>
+
+    <!-- 加载HTML2IMG集成模块 -->
+    <script src="js/html2img-integration.js"></script>
+
+    <script>
+        // 测试函数
+        function testDownload(elementId, filename, mode) {
+            console.log('测试下载:', elementId, filename, mode);
+            
+            // 使用集成的下载功能
+            if (window.html2imgIntegration) {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    const cardData = window.html2imgIntegration.extractCardData(element, mode, filename);
+                    window.html2imgIntegration.openModal(cardData);
+                } else {
+                    alert('找不到卡片元素: ' + elementId);
+                }
+            } else {
+                alert('HTML2IMG集成模块未加载');
+            }
+        }
+
+        function testSingleCard() {
+            const testData = {
+                title: '测试单个卡片',
+                content: '这是一个**测试内容**，用来验证HTML2IMG集成功能是否正常工作。\n\n支持*Markdown*格式！',
+                mode: 'story',
+                filename: '测试卡片.png',
+                tabName: '测试模式'
+            };
+
+            if (window.html2imgIntegration) {
+                window.html2imgIntegration.openModal(testData);
+            } else {
+                alert('HTML2IMG集成模块未加载');
+            }
+        }
+
+        function testAllCards() {
+            if (window.html2imgIntegration) {
+                const allData = window.html2imgIntegration.extractAllCardData();
+                window.html2imgIntegration.openModal(allData);
+            } else {
+                alert('HTML2IMG集成模块未加载');
+            }
+        }
+
+        // 页面加载完成后的测试
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('页面加载完成，开始测试...');
+            
+            // 检查依赖库
+            const libraries = {
+                'html2canvas': typeof html2canvas !== 'undefined',
+                'JSZip': typeof JSZip !== 'undefined',
+                'marked': typeof marked !== 'undefined',
+                'DOMPurify': typeof DOMPurify !== 'undefined'
+            };
+
+            console.log('依赖库检查:', libraries);
+
+            // 检查集成模块
+            setTimeout(() => {
+                if (window.html2imgIntegration) {
+                    console.log('✅ HTML2IMG集成模块加载成功');
+                } else {
+                    console.error('❌ HTML2IMG集成模块加载失败');
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

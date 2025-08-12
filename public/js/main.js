@@ -1043,8 +1043,8 @@ function downloadCard(elementId, filename, mode) {
 
     // 检查html2img集成是否可用
     if (!window.html2imgIntegration) {
-        console.error('HTML2IMG集成模块未加载');
-        alert('图片生成功能未准备就绪，请刷新页面重试');
+        console.error('HTML2IMG集成模块未加载，使用传统下载方式');
+        downloadCardLegacy(elementId, filename, mode);
         return;
     }
 
@@ -1055,63 +1055,11 @@ function downloadCard(elementId, filename, mode) {
         return;
     }
 
-    // 提取卡片数据
-    const cardData = extractCardData(cardElement, mode, filename);
+    // 使用集成模块的提取函数
+    const cardData = window.html2imgIntegration.extractCardData(cardElement, mode, filename);
 
     // 使用新的html2img集成功能打开模态框
     window.html2imgIntegration.openModal(cardData);
-}
-
-// 提取卡片数据的辅助函数
-function extractCardData(cardElement, mode, filename) {
-    const titleElement = cardElement.querySelector('h2');
-    const title = titleElement ? titleElement.textContent : '学习卡片';
-
-    let content = '';
-
-    // 根据不同模式提取内容
-    switch(mode) {
-        case 'story':
-            const storyOutput = cardElement.querySelector('#story-output');
-            content = storyOutput ? storyOutput.textContent : '';
-            break;
-        case 'bilingual':
-            const studyOutput = cardElement.querySelector('#study-output');
-            content = studyOutput ? studyOutput.textContent : '';
-            break;
-        case 'vocab':
-            const vocabOutput = cardElement.querySelector('#vocab-output');
-            if (vocabOutput) {
-                // 提取单词列表内容
-                const vocabItems = vocabOutput.querySelectorAll('div[class*="justify-between"]');
-                content = Array.from(vocabItems).map(item => {
-                    const word = item.querySelector('strong') || 
-                                item.querySelector('span[class*="font-semibold"]') ||
-                                item.querySelector('span:first-child');
-                    const meaning = item.querySelector('span[class*="text-gray"]') ||
-                                   item.querySelector('span:last-child');
-                    
-                    return `${word ? word.textContent.trim() : ''}: ${meaning ? meaning.textContent.trim() : ''}`;
-                }).join('\n');
-            }
-            break;
-        case 'test':
-            const testOutput = cardElement.querySelector('#test-output');
-            content = testOutput ? testOutput.textContent : '';
-            
-            // 替换输入框为填空标记
-            content = content.replace(/___+/g, '_______');
-            break;
-        default:
-            content = cardElement.textContent || '';
-    }
-
-    return {
-        title: title,
-        content: content,
-        mode: mode,
-        filename: filename
-    };
 }
 
 // 保留原始下载函数作为备用

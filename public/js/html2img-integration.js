@@ -59,10 +59,13 @@ class HTML2IMGIntegration {
     createModalHTML() {
         return `
         <div id="html2img-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden z-[9999] flex items-center justify-center p-4">
-            <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[95vh] overflow-hidden flex flex-col">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-7xl w-full max-h-[95vh] overflow-hidden flex flex-col">
                 <!-- 模态框头部 -->
                 <div class="flex justify-between items-center p-6 border-b border-gray-200 flex-shrink-0">
-                    <h3 class="text-xl font-bold text-gray-800">🎨 智能图片生成器</h3>
+                    <div class="flex items-center space-x-3">
+                        <h3 class="text-xl font-bold text-gray-800">🎨 智能图片编辑器</h3>
+                        <span id="current-card-indicator" class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"></span>
+                    </div>
                     <button onclick="html2imgIntegration.closeModal()" class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center text-xl transition-colors">
                         ✕
                     </button>
@@ -73,9 +76,33 @@ class HTML2IMGIntegration {
                     <!-- 左侧控制面板 -->
                     <div class="w-1/3 bg-gray-50 flex flex-col">
                         <div class="flex-1 overflow-y-auto p-6">
+                            <!-- 内容编辑区域 -->
+                            <div class="mb-6">
+                                <h4 class="text-lg font-semibold mb-3 text-gray-700">📝 内容编辑</h4>
+                                <div class="space-y-3">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">标题</label>
+                                        <input type="text" id="html2img-title-input" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                               placeholder="输入卡片标题..." oninput="html2imgIntegration.updateContent()">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">内容</label>
+                                        <textarea id="html2img-content-textarea" rows="6" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                                                  placeholder="编辑卡片内容..." oninput="html2imgIntegration.updateContent()"></textarea>
+                                    </div>
+                                    <div class="flex items-center justify-between p-2 bg-yellow-50 rounded-lg">
+                                        <span class="text-sm font-medium text-yellow-800">启用 Markdown</span>
+                                        <label class="inline-flex relative items-center cursor-pointer">
+                                            <input type="checkbox" id="html2img-markdown" class="sr-only peer" checked onchange="html2imgIntegration.updateSetting('useMarkdown', this.checked)">
+                                            <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-600"></div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- 模板选择 -->
                             <div class="mb-6">
-                                <h4 class="text-lg font-semibold mb-3 text-gray-700">选择模板</h4>
+                                <h4 class="text-lg font-semibold mb-3 text-gray-700">🎨 选择模板</h4>
                                 <div class="grid grid-cols-2 gap-3">
                                     <div class="template-option active" data-template="template-modern" onclick="html2imgIntegration.selectTemplate('template-modern')">
                                         <div class="w-full h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg mb-2"></div>
@@ -98,7 +125,7 @@ class HTML2IMGIntegration {
 
                             <!-- 字体设置 -->
                             <div class="mb-6">
-                                <h4 class="text-lg font-semibold mb-3 text-gray-700">字体设置</h4>
+                                <h4 class="text-lg font-semibold mb-3 text-gray-700">🔤 字体设置</h4>
                                 <div class="space-y-3">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-600 mb-1">字体类型</label>
@@ -109,7 +136,7 @@ class HTML2IMGIntegration {
                                         </select>
                                     </div>
                                     <div id="font-size-control">
-                                        <label class="block text-sm font-medium text-gray-600 mb-1">字体大小: <span id="font-size-value">20</span></label>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">字体大小: <span id="font-size-value">20</span>px</label>
                                         <input type="range" id="html2img-font-size" min="12" max="80" value="20" class="w-full"
                                                oninput="html2imgIntegration.updateSetting('fontSize', this.value)">
                                     </div>
@@ -118,12 +145,22 @@ class HTML2IMGIntegration {
                                         <input type="range" id="html2img-line-height" min="1.2" max="2.5" value="1.75" step="0.05" class="w-full"
                                                oninput="html2imgIntegration.updateSetting('lineHeight', this.value)">
                                     </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">字间距: <span id="letter-spacing-value">0.025</span>em</label>
+                                        <input type="range" id="html2img-letter-spacing" min="-0.05" max="0.2" value="0.025" step="0.005" class="w-full"
+                                               oninput="html2imgIntegration.updateSetting('letterSpacing', this.value)">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">内边距: <span id="padding-value">8</span></label>
+                                        <input type="range" id="html2img-padding" min="4" max="16" value="8" step="1" class="w-full"
+                                               oninput="html2imgIntegration.updateSetting('padding', this.value)">
+                                    </div>
                                 </div>
                             </div>
 
                             <!-- 高级设置 -->
                             <div class="mb-6">
-                                <h4 class="text-lg font-semibold mb-3 text-gray-700">高级设置</h4>
+                                <h4 class="text-lg font-semibold mb-3 text-gray-700">⚙️ 高级设置</h4>
                                 <div class="space-y-3">
                                     <div class="flex items-center justify-between p-2 bg-blue-50 rounded-lg">
                                         <span class="text-sm font-medium text-blue-800">AI 智能字号</span>
@@ -131,6 +168,16 @@ class HTML2IMGIntegration {
                                             <input type="checkbox" id="html2img-autofit" class="sr-only peer" checked onchange="html2imgIntegration.updateSetting('autoFitFontSize', this.checked)">
                                             <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                                         </label>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">背景图片 URL</label>
+                                        <input type="text" id="html2img-background" class="w-full p-2 border border-gray-300 rounded-lg"
+                                               placeholder="输入图片链接..." oninput="html2imgIntegration.updateSetting('backgroundImage', this.value)">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">水印文字</label>
+                                        <input type="text" id="html2img-watermark" class="w-full p-2 border border-gray-300 rounded-lg"
+                                               placeholder="输入水印文字..." oninput="html2imgIntegration.updateSetting('watermark', this.value)">
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-600 mb-1">图片质量</label>
@@ -162,14 +209,23 @@ class HTML2IMGIntegration {
 
                     <!-- 右侧预览区域 -->
                     <div class="flex-1 bg-white flex flex-col">
-                        <div class="p-4 border-b border-gray-200 flex-shrink-0">
+                        <div class="p-4 border-b border-gray-200 flex-shrink-0 flex justify-between items-center">
                             <h4 class="text-lg font-semibold text-gray-800">📱 实时预览</h4>
+                            <div class="flex space-x-2">
+                                <button onclick="html2imgIntegration.switchCard('prev')" class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors text-sm">
+                                    ← 上一张
+                                </button>
+                                <button onclick="html2imgIntegration.switchCard('next')" class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors text-sm">
+                                    下一张 →
+                                </button>
+                            </div>
                         </div>
                         <div class="flex-1 p-4 flex items-start justify-center bg-gray-50 min-h-0 overflow-auto">
                             <div id="html2img-preview-container" class="bg-white rounded-lg shadow-lg overflow-hidden" style="width: 400px; height: 533px;">
                                 <div id="html2img-preview-area" class="relative w-full h-full flex flex-col overflow-hidden p-8" style="width: 400px; height: 533px;">
                                     <h2 id="html2img-preview-title" class="title text-2xl font-bold mb-4 break-words"></h2>
                                     <div id="html2img-preview-content" class="whitespace-pre-wrap break-words flex-grow text-base leading-relaxed"></div>
+                                    <div id="html2img-preview-watermark" class="watermark absolute inset-0 flex items-center justify-center text-6xl font-bold select-none pointer-events-none opacity-10 -rotate-12"></div>
                                 </div>
                             </div>
                         </div>
@@ -200,10 +256,10 @@ class HTML2IMGIntegration {
     // 数据提取功能 - 提取页面标题和4个标签页内容
     extractAllCardData() {
         const cardData = [];
-        
+
         // 提取页面标题
         const pageTitle = document.title || '爽文背单词卡片';
-        
+
         // 定义4个标签页的配置
         const tabConfigs = [
             { id: 'card1-content', mode: 'story', name: '爽文带背', filename: '爽文带背.png' },
@@ -226,6 +282,79 @@ class HTML2IMGIntegration {
             pageTitle: pageTitle,
             cards: cardData
         };
+    }
+
+    // 新增：切换卡片功能
+    switchCard(direction) {
+        if (!this.allCardsData || !this.allCardsData.cards) {
+            this.showMessage('没有可切换的卡片', 'error');
+            return;
+        }
+
+        const cards = this.allCardsData.cards;
+        let newIndex = this.currentCardIndex || 0;
+
+        if (direction === 'next') {
+            newIndex = (newIndex + 1) % cards.length;
+        } else if (direction === 'prev') {
+            newIndex = (newIndex - 1 + cards.length) % cards.length;
+        }
+
+        this.currentCardIndex = newIndex;
+        this.currentCardData = cards[newIndex];
+
+        // 更新编辑器内容
+        this.updateEditorContent();
+
+        // 更新预览
+        this.updatePreview();
+
+        // 更新指示器
+        this.updateCardIndicator();
+    }
+
+    // 新增：更新编辑器内容
+    updateEditorContent() {
+        if (!this.currentCardData) return;
+
+        const titleInput = document.getElementById('html2img-title-input');
+        const contentTextarea = document.getElementById('html2img-content-textarea');
+
+        if (titleInput) {
+            titleInput.value = this.currentCardData.title || '';
+        }
+        if (contentTextarea) {
+            contentTextarea.value = this.currentCardData.content || '';
+        }
+    }
+
+    // 新增：更新内容（当用户编辑时）
+    updateContent() {
+        if (!this.currentCardData) return;
+
+        const titleInput = document.getElementById('html2img-title-input');
+        const contentTextarea = document.getElementById('html2img-content-textarea');
+
+        if (titleInput) {
+            this.currentCardData.title = titleInput.value;
+        }
+        if (contentTextarea) {
+            this.currentCardData.content = contentTextarea.value;
+        }
+
+        // 实时更新预览
+        this.updatePreview();
+    }
+
+    // 新增：更新卡片指示器
+    updateCardIndicator() {
+        const indicator = document.getElementById('current-card-indicator');
+        if (indicator && this.allCardsData && this.allCardsData.cards) {
+            const current = (this.currentCardIndex || 0) + 1;
+            const total = this.allCardsData.cards.length;
+            const cardName = this.currentCardData ? this.currentCardData.tabName : '';
+            indicator.textContent = `${cardName} (${current}/${total})`;
+        }
     }
 
     // 提取单个卡片数据（改进版本）
@@ -281,7 +410,7 @@ class HTML2IMGIntegration {
     }
 }
 
-    // 打开模态框
+    // 打开模态框 - 支持单个卡片或全部卡片
     openModal(cardData) {
         console.log('尝试打开模态框，卡片数据:', cardData);
 
@@ -291,7 +420,31 @@ class HTML2IMGIntegration {
             this.initializeModal();
         }
 
-        this.currentCardData = cardData;
+        // 如果传入的是单个卡片数据，则提取所有卡片数据
+        if (cardData && !cardData.cards) {
+            // 单个卡片模式，提取所有卡片数据
+            this.allCardsData = this.extractAllCardData();
+
+            // 找到当前卡片在所有卡片中的索引
+            this.currentCardIndex = 0;
+            if (cardData.mode) {
+                const modeMap = { 'story': 0, 'bilingual': 1, 'vocab': 2, 'test': 3 };
+                this.currentCardIndex = modeMap[cardData.mode] || 0;
+            }
+
+            this.currentCardData = this.allCardsData.cards[this.currentCardIndex] || cardData;
+        } else if (cardData && cardData.cards) {
+            // 全部卡片模式
+            this.allCardsData = cardData;
+            this.currentCardIndex = 0;
+            this.currentCardData = cardData.cards[0];
+        } else {
+            // 默认提取所有卡片
+            this.allCardsData = this.extractAllCardData();
+            this.currentCardIndex = 0;
+            this.currentCardData = this.allCardsData.cards[0];
+        }
+
         this.isModalOpen = true;
 
         const modal = document.getElementById('html2img-modal');
@@ -299,13 +452,48 @@ class HTML2IMGIntegration {
             console.log('显示模态框');
             modal.classList.remove('hidden');
 
-            // 延迟更新预览，确保模态框完全显示
+            // 延迟更新，确保模态框完全显示
             setTimeout(() => {
+                this.initializeModalContent();
+                this.updateEditorContent();
                 this.updatePreview();
+                this.updateCardIndicator();
             }, 100);
         } else {
             console.error('找不到模态框元素');
         }
+    }
+
+    // 新增：初始化模态框内容
+    initializeModalContent() {
+        // 初始化所有控件的值
+        const fontFamilySelect = document.getElementById('html2img-font-family');
+        const fontSizeSlider = document.getElementById('html2img-font-size');
+        const lineHeightSlider = document.getElementById('html2img-line-height');
+        const letterSpacingSlider = document.getElementById('html2img-letter-spacing');
+        const paddingSlider = document.getElementById('html2img-padding');
+        const autofitToggle = document.getElementById('html2img-autofit');
+        const markdownToggle = document.getElementById('html2img-markdown');
+        const backgroundInput = document.getElementById('html2img-background');
+        const watermarkInput = document.getElementById('html2img-watermark');
+        const qualitySelect = document.getElementById('html2img-quality');
+
+        if (fontFamilySelect) fontFamilySelect.value = this.currentSettings.fontFamily;
+        if (fontSizeSlider) fontSizeSlider.value = this.currentSettings.fontSize;
+        if (lineHeightSlider) lineHeightSlider.value = this.currentSettings.lineHeight;
+        if (letterSpacingSlider) letterSpacingSlider.value = this.currentSettings.letterSpacing;
+        if (paddingSlider) paddingSlider.value = this.currentSettings.padding;
+        if (autofitToggle) autofitToggle.checked = this.currentSettings.autoFitFontSize;
+        if (markdownToggle) markdownToggle.checked = this.currentSettings.useMarkdown;
+        if (backgroundInput) backgroundInput.value = this.currentSettings.backgroundImage;
+        if (watermarkInput) watermarkInput.value = this.currentSettings.watermark;
+        if (qualitySelect) qualitySelect.value = this.currentSettings.imageQuality;
+
+        // 更新UI显示值
+        this.updateUIValues();
+
+        // 设置默认模板
+        this.selectTemplate(this.currentSettings.template);
     }
 
     // 关闭模态框
@@ -357,6 +545,8 @@ class HTML2IMGIntegration {
     updateUIValues() {
         const fontSizeValue = document.getElementById('font-size-value');
         const lineHeightValue = document.getElementById('line-height-value');
+        const letterSpacingValue = document.getElementById('letter-spacing-value');
+        const paddingValue = document.getElementById('padding-value');
         const fontSizeControl = document.getElementById('font-size-control');
 
         if (fontSizeValue) {
@@ -364,6 +554,12 @@ class HTML2IMGIntegration {
         }
         if (lineHeightValue) {
             lineHeightValue.textContent = this.currentSettings.lineHeight.toFixed(2);
+        }
+        if (letterSpacingValue) {
+            letterSpacingValue.textContent = this.currentSettings.letterSpacing.toFixed(3);
+        }
+        if (paddingValue) {
+            paddingValue.textContent = this.currentSettings.padding;
         }
 
         // 根据自动字体大小设置显示/隐藏字体大小控制
@@ -384,6 +580,7 @@ class HTML2IMGIntegration {
         const previewArea = document.getElementById('html2img-preview-area');
         const previewTitle = document.getElementById('html2img-preview-title');
         const previewContent = document.getElementById('html2img-preview-content');
+        const previewWatermark = document.getElementById('html2img-preview-watermark');
 
         if (!previewArea || !previewTitle || !previewContent) {
             console.error('预览元素未找到:', { previewArea: !!previewArea, previewTitle: !!previewTitle, previewContent: !!previewContent });
@@ -401,7 +598,7 @@ class HTML2IMGIntegration {
             try {
                 const rawHtml = marked.parse(content, { breaks: true });
                 const cleanHtml = DOMPurify.sanitize(rawHtml, {
-                    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
+                    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre'],
                     ALLOWED_ATTR: []
                 });
                 previewContent.innerHTML = cleanHtml;
@@ -411,6 +608,11 @@ class HTML2IMGIntegration {
             }
         } else {
             previewContent.textContent = content;
+        }
+
+        // 设置水印
+        if (previewWatermark) {
+            previewWatermark.textContent = this.currentSettings.watermark || '';
         }
 
         // 应用模板样式
@@ -449,12 +651,31 @@ class HTML2IMGIntegration {
         element.style.letterSpacing = this.currentSettings.letterSpacing + 'em';
         element.style.padding = this.currentSettings.padding * 0.25 + 'rem';
 
+        // 设置背景图片
+        if (this.currentSettings.backgroundImage && this.isValidUrl(this.currentSettings.backgroundImage)) {
+            element.style.backgroundImage = `url('${this.currentSettings.backgroundImage}')`;
+            element.style.backgroundSize = 'cover';
+            element.style.backgroundPosition = 'center';
+        } else {
+            element.style.backgroundImage = 'none';
+        }
+
         // 确保内容区域也应用字体设置
         const contentElement = element.querySelector('#html2img-preview-content');
         if (contentElement) {
             contentElement.style.fontSize = fontSize + 'px';
             contentElement.style.lineHeight = this.currentSettings.lineHeight;
             contentElement.style.letterSpacing = this.currentSettings.letterSpacing + 'em';
+        }
+    }
+
+    // 验证URL有效性
+    isValidUrl(string) {
+        try {
+            const url = new URL(string);
+            return url.protocol === 'http:' || url.protocol === 'https:';
+        } catch (_) {
+            return false;
         }
     }
 
@@ -589,10 +810,11 @@ class HTML2IMGIntegration {
         button.disabled = true;
 
         try {
-            // 提取所有卡片数据
-            const allData = this.extractAllCardData();
+            // 使用当前的卡片数据（包含用户编辑的内容）
+            const cardsToDownload = this.allCardsData && this.allCardsData.cards ?
+                this.allCardsData.cards : this.extractAllCardData().cards;
 
-            if (!allData.cards || allData.cards.length === 0) {
+            if (!cardsToDownload || cardsToDownload.length === 0) {
                 this.showMessage('没有找到卡片数据', 'error');
                 return;
             }
@@ -610,17 +832,22 @@ class HTML2IMGIntegration {
                 throw new Error('预览区域未找到');
             }
 
+            // 保存当前状态
+            const originalCardData = this.currentCardData;
+            const originalCardIndex = this.currentCardIndex;
+
             // 逐个生成图片
-            for (let i = 0; i < allData.cards.length; i++) {
-                const cardData = allData.cards[i];
-                button.textContent = `正在生成 ${i + 1}/${allData.cards.length}...`;
+            for (let i = 0; i < cardsToDownload.length; i++) {
+                const cardData = cardsToDownload[i];
+                button.textContent = `正在生成 ${i + 1}/${cardsToDownload.length}...`;
 
                 // 更新预览内容为当前卡片
                 this.currentCardData = cardData;
+                this.currentCardIndex = i;
                 this.updatePreview();
 
                 // 等待渲染完成
-                await new Promise(resolve => setTimeout(resolve, 200));
+                await new Promise(resolve => setTimeout(resolve, 300));
 
                 // 生成图片
                 const canvas = await html2canvas(previewArea, {
@@ -633,8 +860,17 @@ class HTML2IMGIntegration {
 
                 // 转换为blob并添加到zip
                 const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-                zip.file(cardData.filename || `卡片${i + 1}.png`, blob);
+                const filename = cardData.filename || `${cardData.tabName || '卡片'}${i + 1}.png`;
+                zip.file(filename, blob);
+
+                // 释放canvas内存
+                this.releaseCanvasMemory(canvas);
             }
+
+            // 恢复原始状态
+            this.currentCardData = originalCardData;
+            this.currentCardIndex = originalCardIndex;
+            this.updatePreview();
 
             // 生成并下载zip文件
             button.textContent = '正在打包...';
@@ -642,7 +878,8 @@ class HTML2IMGIntegration {
 
             const link = document.createElement('a');
             link.href = URL.createObjectURL(zipBlob);
-            link.download = `${allData.pageTitle}_全部卡片.zip`;
+            const pageTitle = this.allCardsData ? this.allCardsData.pageTitle : '爽文背单词卡片';
+            link.download = `${pageTitle}_全部卡片.zip`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -658,6 +895,18 @@ class HTML2IMGIntegration {
         } finally {
             button.textContent = originalText;
             button.disabled = false;
+        }
+    }
+
+    // 释放canvas内存
+    releaseCanvasMemory(canvas) {
+        if (canvas && canvas.getContext) {
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+            canvas.width = 1;
+            canvas.height = 1;
         }
     }
 
@@ -707,9 +956,11 @@ class HTML2IMGIntegration {
             .template-option.active {
                 border-color: #3b82f6;
                 background-color: #eff6ff;
+                transform: scale(1.02);
             }
             .template-option:hover {
                 border-color: #93c5fd;
+                transform: scale(1.01);
             }
 
             /* 模板样式 */
@@ -719,6 +970,10 @@ class HTML2IMGIntegration {
             }
             .template-modern .title {
                 color: white;
+                text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            }
+            .template-modern .watermark {
+                color: rgba(255, 255, 255, 0.1);
             }
 
             .template-academic {
@@ -729,6 +984,12 @@ class HTML2IMGIntegration {
             .template-academic .title {
                 color: #1a1a1a;
                 font-family: 'Noto Serif SC', serif;
+                border-bottom: 2px solid #e0e0e0;
+                padding-bottom: 0.5rem;
+                margin-bottom: 1rem;
+            }
+            .template-academic .watermark {
+                color: rgba(160, 160, 160, 0.1);
             }
 
             .template-creative {
@@ -738,6 +999,10 @@ class HTML2IMGIntegration {
             .template-creative .title {
                 color: #dd4a48;
                 font-family: 'ZCOOL KuaiLe', cursive;
+                text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            }
+            .template-creative .watermark {
+                color: rgba(93, 65, 87, 0.1);
             }
 
             .template-business {
@@ -748,12 +1013,64 @@ class HTML2IMGIntegration {
                 color: #f3f4f6;
                 border-bottom: 2px solid #4b5563;
                 padding-bottom: 0.5rem;
+                margin-bottom: 1rem;
+            }
+            .template-business .watermark {
+                color: rgba(107, 114, 128, 0.1);
             }
 
             /* 字体样式 */
             .font-noto-sans { font-family: 'Noto Sans SC', sans-serif; }
             .font-noto-serif { font-family: 'Noto Serif SC', serif; }
             .font-zcool { font-family: 'ZCOOL KuaiLe', cursive; }
+
+            /* 水印样式 */
+            .watermark {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 4rem;
+                font-weight: bold;
+                user-select: none;
+                pointer-events: none;
+                transform: rotate(-12deg);
+                opacity: 0.1;
+                z-index: 1;
+            }
+
+            /* 预览区域样式优化 */
+            #html2img-preview-area {
+                position: relative;
+                overflow: hidden;
+            }
+
+            #html2img-preview-content {
+                position: relative;
+                z-index: 2;
+            }
+
+            #html2img-preview-title {
+                position: relative;
+                z-index: 2;
+            }
+
+            /* 滚动条样式 */
+            .overflow-y-auto::-webkit-scrollbar {
+                width: 6px;
+            }
+            .overflow-y-auto::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 3px;
+            }
+            .overflow-y-auto::-webkit-scrollbar-thumb {
+                background: #c1c1c1;
+                border-radius: 3px;
+            }
+            .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+                background: #a8a8a8;
+            }
         `;
         document.head.appendChild(style);
     }
