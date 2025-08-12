@@ -96,6 +96,17 @@ async function initTables() {
     console.log('已添加默认阿里云千问API密钥');
   }
   
+  // 检查是否已存在deepseek_api_key设置
+  const deepseekSetting = await get('SELECT value FROM settings WHERE key = ?', ['deepseek_api_key']);
+  if (!deepseekSetting) {
+    // 插入默认的DeepSeek API密钥
+    await run(
+      'INSERT INTO settings (key, value) VALUES (?, ?)',
+      ['deepseek_api_key', 'sk-osdyhthiavdtkhwpzpocwkqlxhdvwjocopepvrtblgubhzec']
+    );
+    console.log('已添加默认DeepSeek API密钥');
+  }
+  
   console.log('数据库表结构初始化完成');
 }
 

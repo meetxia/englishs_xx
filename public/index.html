@@ -8,8 +8,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- 新增html2img功能所需的依赖 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+    <!-- 新增Google Fonts支持 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@400;700&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
     <!-- Tone.js已禁用以避免兼容性问题 -->
     <link rel="stylesheet" href="css/styles.css">
+    <script src="js/canvas-renderer.js"></script>
     <style>
         .sticky-generate-btn {
             position: sticky;
@@ -64,7 +73,14 @@
                 </div>
                 <div>
                     <h3>4. 音频功能</h3>
-                    <div class="bg-blue-50 p-3 rounded-lg mb-4 text-sm">
+                    <div class="flex items-center cursor-pointer mb-2" id="audio-info-toggle">
+                        <span class="text-blue-600 font-medium">🔊 点击查看音频功能说明</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2 text-blue-500 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                    
+                    <div id="audio-info-panel" class="bg-blue-50 p-3 rounded-lg mb-4 text-sm hidden">
                         <p class="mb-2"><strong>🔊 音频功能说明：</strong></p>
                         <ul class="list-disc list-inside space-y-1 text-gray-700">
                             <li>点击生成的单词卡片中的<span class="highlight">高亮单词</span>可以听发音</li>
@@ -72,10 +88,35 @@
                             <li>填空测试中答对会有成功音效，答错会有错误音效</li>
                             <li>使用牛津高阶英汉双解词典第10版音频文件</li>
                             <li>首次使用需要点击页面任意位置激活音频系统</li>
+                            <li>当本地音频不可用时自动使用TTS语音合成（可在下方设置）</li>
                         </ul>
-                    </div>
+                        
+                        <div class="mt-4 border-t pt-3 border-blue-200">
+                            <h4 class="font-medium mb-2">测试和设置</h4>
+                            
+                            <div class="flex gap-3 mb-3">
+                                <button onclick="pronounceWord('hello')" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-sm">
+                                    🔊 测试发音
+                                </button>
+                                <button onclick="pronounceWord('pronunciation')" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 text-sm">
+                                    🔊 测试长单词
+                                </button>
+                                <a href="audio-test-oxford.html" target="_blank" class="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600 text-sm">
+                                    🔧 详细测试
+                                </a>
+                            </div>
 
-                    <!-- 发音设置 -->
+                            <!-- 备用发音设置 -->
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" id="fallback-tts" class="form-checkbox text-green-500" checked>
+                                <span class="ml-2 text-sm">当本地音频不可用时使用TTS语音合成</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h3>5. 参数设置</h3>
+                    <!-- 发音类型选择 -->
                     <div class="mb-4">
                         <h4 class="text-sm font-medium text-gray-700 mb-2">发音类型选择：</h4>
                         <div class="flex gap-3">
@@ -89,34 +130,19 @@
                             </label>
                         </div>
                     </div>
-
-                    <!-- 备用发音设置 -->
+                    
+                    <!-- 单词数量设置 -->
                     <div class="mb-4">
-                        <label class="inline-flex items-center">
-                            <input type="checkbox" id="fallback-tts" class="form-checkbox text-green-500" checked>
-                            <span class="ml-2 text-sm">当本地音频不可用时使用TTS语音合成</span>
-                        </label>
+                        <label for="word-count" class="block text-sm font-medium text-gray-700">单词数量: <span id="word-count-display" class="font-bold text-blue-500">15</span> / <span id="max-word-count" class="text-gray-500">10</span>个</label>
+                        <input type="range" id="word-count-slider" min="5" max="50" value="15" step="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
                     </div>
-
-                    <div class="flex flex-wrap gap-2 mb-4">
-                        <button onclick="pronounceWord('hello')" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-sm">
-                            🔊 测试发音
-                        </button>
-                        <button onclick="pronounceWord('pronunciation')" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 text-sm">
-                            🔊 测试长单词
-                        </button>
-                        <a href="audio-test.html" target="_blank" class="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600 text-sm">
-                            🔧 音频测试页面
-                        </a>
-                    </div>
+                    
+                    <!-- 故事字数设置 -->
+                    <label for="char-count" class="block text-sm font-medium text-gray-700">故事字数: <span id="char-count-display" class="font-bold text-red-500">300</span>字</label>
+                    <input id="char-count" type="range" min="200" max="1000" value="300" step="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
                 </div>
                 <div>
-                    <h3>5. 参数设置</h3>
-                    <label for="char-count" class="block text-sm font-medium text-gray-700">故事字数: <span id="char-count-display" class="font-bold text-red-500">500</span>字</label>
-                    <input id="char-count" type="range" min="200" max="2000" value="500" step="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
-                </div>
-                <div>
-                    <h3>5. 选择AI模型</h3>
+                    <h3>6. 选择AI模型</h3>
                     <div class="flex flex-col gap-2 mt-2">
                         <label class="inline-flex items-center">
                             <input type="radio" name="ai-model" value="qwen" class="form-radio text-red-500" checked>
@@ -125,6 +151,10 @@
                         <label class="inline-flex items-center">
                             <input type="radio" name="ai-model" value="gemini" class="form-radio text-blue-500">
                             <span class="ml-2">Google Gemini</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="ai-model" value="deepseek" class="form-radio text-purple-500">
+                            <span class="ml-2">DeepSeek-V3</span>
                         </label>
                     </div>
                 </div>
@@ -158,7 +188,7 @@
                     </div>
                 </div>
                 
-                <h3 class="text-xl font-bold text-gray-800 mb-4 text-center">看看别人是如何使用的</h3>
+                <h3 class="text-xl font-bold text-gray-800 mb-4 text-center">看看生成的示例</h3>
                 
                 <div class="bg-white border border-gray-200 rounded-lg p-4">
                     <div class="example-tabs flex border-b border-gray-200 mb-4">
@@ -271,7 +301,7 @@
                                 <h2 class="text-2xl font-bold text-red-500 mb-6 text-center">模式一：爽文带背</h2>
                                 <p id="story-output" class="text-gray-700 leading-relaxed text-base"></p>
                             </div>
-                            <button onclick="downloadCard('card1-content', '爽文带背.png')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-900 transition-colors">下载图片</button>
+                            <button onclick="downloadCard('card1-content', '爽文带背.png', 'story')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-900 transition-colors">下载图片</button>
                         </div>
                     </div>
                     
@@ -282,7 +312,7 @@
                                 <h2 class="text-2xl font-bold text-blue-500 mb-6 text-center">模式二：中英对照</h2>
                                 <p id="study-output" class="text-gray-700 leading-relaxed text-base"></p>
                             </div>
-                            <button onclick="downloadCard('card2-content', '中英对照.png')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-900 transition-colors">下载图片</button>
+                            <button onclick="downloadCard('card2-content', '中英对照.png', 'bilingual')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-900 transition-colors">下载图片</button>
                         </div>
                     </div>
                     
@@ -293,7 +323,7 @@
                                 <h2 class="text-2xl font-bold text-green-500 mb-6 text-center">模式三：单词列表</h2>
                                 <div id="vocab-output" class="space-y-4"></div>
                             </div>
-                            <button onclick="downloadCard('card3-content', '单词列表.png')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-900 transition-colors">下载图片</button>
+                            <button onclick="downloadCard('card3-content', '单词列表.png', 'vocab')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-900 transition-colors">下载图片</button>
                         </div>
                     </div>
                     
@@ -304,7 +334,7 @@
                                 <h2 class="text-2xl font-bold text-purple-500 mb-6 text-center">模式四：填空测试</h2>
                                 <div id="test-output" class="text-gray-700 leading-relaxed text-base"></div>
                             </div>
-                            <button onclick="downloadCard('card4-content', '填空测试.png')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-900 transition-colors">下载图片</button>
+                            <button onclick="downloadCard('card4-content', '填空测试.png', 'test')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-900 transition-colors">下载图片</button>
                         </div>
                     </div>
                 </div>
@@ -317,6 +347,7 @@
     </div>
 
     <script src="js/main.js"></script>
+    <script src="js/html2img-integration.js"></script>
 
     <!-- 调试脚本 -->
     <script>
@@ -350,6 +381,12 @@
             }, 2000);
         });
     </script>
+
+
+
+
+
+
 </body>
 </html>
 

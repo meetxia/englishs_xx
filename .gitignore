@@ -19,3 +19,4 @@ Thumbs.db
 # 上传目录
 uploads/*
 !uploads/.gitkeep
+public/audio/

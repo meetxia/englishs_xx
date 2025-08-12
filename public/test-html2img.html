@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML2IMG集成测试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@400;700&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-center mb-8">HTML2IMG集成功能测试</h1>
+        
+        <div class="bg-white p-6 rounded-lg shadow-lg mb-6">
+            <h2 class="text-xl font-bold mb-4">测试卡片内容</h2>
+            <div id="test-card-content" class="border p-4 rounded">
+                <h2 class="text-2xl font-bold text-blue-600 mb-4">测试标题</h2>
+                <p class="text-gray-700 leading-relaxed">
+                    这是一个测试内容，用来验证HTML2IMG集成功能是否正常工作。
+                    我们将测试文本转图片的功能，包括字体设置、模板样式和下载功能。
+                </p>
+            </div>
+            <button onclick="testDownload()" class="mt-4 bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+                测试下载功能
+            </button>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-xl font-bold mb-4">控制台日志</h2>
+            <div id="console-log" class="bg-gray-100 p-4 rounded text-sm font-mono h-64 overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <script src="js/html2img-integration.js"></script>
+    <script>
+        // 重写console.log来显示在页面上
+        const originalLog = console.log;
+        const logContainer = document.getElementById('console-log');
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const logEntry = document.createElement('div');
+            logEntry.textContent = args.join(' ');
+            logEntry.className = 'mb-1 text-gray-800';
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        };
+
+        console.error = function(...args) {
+            originalLog.apply(console, args);
+            const logEntry = document.createElement('div');
+            logEntry.textContent = 'ERROR: ' + args.join(' ');
+            logEntry.className = 'mb-1 text-red-600 font-bold';
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        };
+
+        function testDownload() {
+            console.log('开始测试下载功能...');
+            
+            try {
+                // 检查html2imgIntegration是否存在
+                if (!window.html2imgIntegration) {
+                    console.error('html2imgIntegration未定义');
+                    return;
+                }
+
+                // 创建测试数据
+                const testData = {
+                    title: '测试卡片标题',
+                    content: '这是一个测试内容，用来验证HTML2IMG集成功能是否正常工作。我们将测试文本转图片的功能，包括字体设置、模板样式和下载功能。',
+                    mode: 'story',
+                    filename: '测试卡片.png'
+                };
+
+                console.log('测试数据:', testData);
+                
+                // 打开模态框
+                window.html2imgIntegration.openModal(testData);
+                console.log('模态框已打开');
+                
+            } catch (error) {
+                console.error('测试失败:', error);
+            }
+        }
+
+        // 页面加载完成后的测试
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('页面加载完成');
+            console.log('html2canvas可用:', typeof html2canvas !== 'undefined');
+            console.log('JSZip可用:', typeof JSZip !== 'undefined');
+            console.log('marked可用:', typeof marked !== 'undefined');
+            console.log('DOMPurify可用:', typeof DOMPurify !== 'undefined');
+            console.log('html2imgIntegration可用:', typeof window.html2imgIntegration !== 'undefined');
+            
+            if (window.html2imgIntegration) {
+                console.log('html2imgIntegration实例:', window.html2imgIntegration);
+            }
+        });
+    </script>
+</body>
+</html>

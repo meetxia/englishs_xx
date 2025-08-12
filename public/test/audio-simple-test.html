@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>极简音频测试页面</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>极简音频测试页面</h1>
+    
+    <div class="test-section">
+        <h2>方法一：直接使用audio标签</h2>
+        <p>这种方法是最简单可靠的：</p>
+        
+        <div>
+            <h3>Hello (英式)</h3>
+            <audio controls src="/audio/hello_gb.mp3"></audio>
+        </div>
+        
+        <div>
+            <h3>World (英式)</h3>
+            <audio controls src="/audio/world_gb.mp3"></audio>
+        </div>
+        
+        <div>
+            <h3>Beautiful (英式)</h3>
+            <audio controls src="/audio/beautiful_gb.mp3"></audio>
+        </div>
+        
+        <div>
+            <h3>Pronunciation (英式)</h3>
+            <audio controls src="/audio/pronunciation_gb.mp3"></audio>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>方法二：使用JavaScript播放</h2>
+        <p>点击按钮测试JavaScript音频播放：</p>
+        
+        <div>
+            <button onclick="playAudio('/audio/hello_gb.mp3')">播放 Hello</button>
+            <button onclick="playAudio('/audio/world_gb.mp3')">播放 World</button>
+            <button onclick="playAudio('/audio/beautiful_gb.mp3')">播放 Beautiful</button>
+            <button onclick="playAudio('/audio/pronunciation_gb.mp3')">播放 Pronunciation</button>
+        </div>
+        
+        <div id="status"></div>
+    </div>
+    
+    <script>
+        function playAudio(src) {
+            const statusEl = document.getElementById('status');
+            statusEl.innerHTML = `正在尝试播放: ${src}`;
+            statusEl.className = '';
+            
+            const audio = new Audio(src);
+            
+            audio.onloadeddata = () => {
+                statusEl.innerHTML = `✅ 音频加载成功: ${src}`;
+                statusEl.className = 'success';
+                audio.play();
+            };
+            
+            audio.onerror = (e) => {
+                statusEl.innerHTML = `❌ 音频加载失败: ${src}, 错误代码: ${audio.error ? audio.error.code : '未知'}`;
+                statusEl.className = 'error';
+                console.error('音频加载失败:', audio.error);
+            };
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文本转图片生成器 (AI 智能排版版)</title>
+    <!-- 引入Tailwind CSS框架 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入html2canvas库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- 引入JSZip库，用于打包下载 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- 引入marked.js库，用于解析Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- 引入DOMPurify库，用于安全的HTML净化 -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+    <!-- 引入Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@400;700&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --preview-padding: 3rem;
+            --line-height: 1.75;
+            --letter-spacing: 0.025em;
+            --font-size: 20px;
+        }
+        body { font-family: 'Noto Sans SC', sans-serif; }
+        #preview-area {
+            padding: var(--preview-padding);
+            line-height: var(--line-height);
+            letter-spacing: var(--letter-spacing);
+            background-size: cover;
+            background-position: center;
+        }
+        #preview-content {
+            font-size: var(--font-size);
+        }
+        #preview-watermark { opacity: 0.1; }
+        .font-noto-sans { font-family: 'Noto Sans SC', sans-serif; }
+        .font-noto-serif { font-family: 'Noto Serif SC', serif; }
+        .font-zcool { font-family: 'ZCOOL KuaiLe', cursive; }
+
+        /* 模板样式 */
+        .template-modern { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .template-modern .title { color: white; }
+        .template-modern .page-number, .template-modern .watermark { color: rgba(255, 255, 255, 0.7); }
+        .template-academic { background-color: #fdfbf7; color: #3d3d3d; border: 1px solid #e0e0e0; }
+        .template-academic .title { color: #1a1a1a; font-family: 'Noto Serif SC', serif; }
+        .template-academic .page-number, .template-academic .watermark { color: #a0a0a0; }
+        .template-creative { background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 99%, #fad0c4 100%); color: #5d4157; }
+        .template-creative .title { color: #dd4a48; font-family: 'ZCOOL KuaiLe', cursive; }
+        .template-creative .page-number, .template-creative .watermark { color: rgba(93, 65, 87, 0.7); }
+        .template-business { background-color: #1f2937; color: #d1d5db; }
+        .template-business .title { color: #f3f4f6; border-bottom: 2px solid #4b5563; padding-bottom: 0.5rem; }
+        .template-business .page-number, .template-business .watermark { color: #6b7280; }
+
+        #preview-area-wrapper { aspect-ratio: 210 / 297; width: 100%; max-width: 600px; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; background: #3b82f6; cursor: pointer; border-radius: 50%; }
+        input[type=range]::-moz-range-thumb { width: 20px; height: 20px; background: #3b82f6; cursor: pointer; border-radius: 50%; }
+        
+        #preview-content strong { font-weight: bold; }
+        #preview-content em { font-style: italic; }
+        .custom-modal { transition: opacity 0.3s ease; }
+
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            #preview-area-wrapper { max-width: 100%; }
+            .grid { grid-template-columns: 1fr; }
+            .template-btn { height: 60px; font-size: 0.875rem; }
+            input[type=range] { height: 8px; }
+            input[type=range]::-webkit-slider-thumb { width: 24px; height: 24px; }
+            input[type=range]::-moz-range-thumb { width: 24px; height: 24px; }
+        }
+
+        /* 无障碍访问性 */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* 焦点样式 */
+        button:focus, input:focus, select:focus, textarea:focus {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+
+        /* 加载动画 */
+        .loading-spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- 全局自定义Modal -->
+    <div id="custom-confirm-modal" class="custom-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden opacity-0" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-message">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
+            <h3 id="modal-title" class="text-lg font-bold mb-4">确认操作</h3>
+            <p id="modal-message" class="text-gray-600 mb-6">您确定要执行此操作吗？</p>
+            <div class="flex justify-end space-x-4">
+                <button id="modal-cancel-btn" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300" aria-label="取消操作">取消</button>
+                <button id="modal-confirm-btn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700" aria-label="确认操作">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-900">文本转图片生成器 <span class="text-2xl text-green-600">AI 智能排版</span></h1>
+            <p class="text-lg text-gray-600 mt-2">新增智能字号填充与字体大小调节，创作更自由！</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- 左侧：控制面板 -->
+            <div class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-lg space-y-4 h-fit">
+                
+                <details open class="group">
+                    <summary class="text-xl font-bold cursor-pointer list-none flex justify-between items-center">模板选择 <span class="text-gray-500 transform group-open:rotate-90 transition-transform">▶</span></summary>
+                    <div class="mt-4 grid grid-cols-2 gap-3">
+                        <button data-template="template-modern" class="template-btn h-20 rounded-lg p-2 text-white flex items-end bg-gradient-to-br from-purple-500 to-blue-500 border-4 border-blue-600">现代简约</button>
+                        <button data-template="template-academic" class="template-btn h-20 rounded-lg p-2 text-gray-800 flex items-end bg-[#fdfbf7] border">学术风格</button>
+                        <button data-template="template-creative" class="template-btn h-20 rounded-lg p-2 text-white flex items-end bg-gradient-to-br from-red-300 to-yellow-200 border">创意活泼</button>
+                        <button data-template="template-business" class="template-btn h-20 rounded-lg p-2 text-white flex items-end bg-gray-800 border">商务正式</button>
+                    </div>
+                </details>
+
+                <hr/>
+
+                <details class="group">
+                    <summary class="text-xl font-bold cursor-pointer list-none flex justify-between items-center">布局与字体 <span class="text-gray-500 transform group-open:rotate-90 transition-transform">▶</span></summary>
+                    <div class="mt-4 space-y-4">
+                        <div id="font-size-control">
+                            <label for="font-size-slider" class="block text-sm font-medium text-gray-700">字体大小: <span id="font-size-value" class="font-bold text-blue-600">20</span></label>
+                            <input id="font-size-slider" type="range" min="12" max="80" value="20" step="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-2" aria-label="调整字体大小" aria-describedby="font-size-value">
+                        </div>
+                        <div>
+                            <label for="padding-slider" class="block text-sm font-medium text-gray-700">内容边距: <span id="padding-value" class="font-bold text-blue-600">8</span></label>
+                            <input id="padding-slider" type="range" min="4" max="16" value="8" step="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-2" aria-label="调整内容边距" aria-describedby="padding-value">
+                        </div>
+                        <div>
+                            <label for="line-height-slider" class="block text-sm font-medium text-gray-700">行间距: <span id="line-height-value" class="font-bold text-blue-600">1.75</span></label>
+                            <input id="line-height-slider" type="range" min="1.2" max="2.5" value="1.75" step="0.05" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-2" aria-label="调整行间距" aria-describedby="line-height-value">
+                        </div>
+                         <div>
+                            <label for="letter-spacing-slider" class="block text-sm font-medium text-gray-700">字间距: <span id="letter-spacing-value" class="font-bold text-blue-600">0.025</span></label>
+                            <input id="letter-spacing-slider" type="range" min="-0.05" max="0.2" value="0.025" step="0.005" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-2" aria-label="调整字间距" aria-describedby="letter-spacing-value">
+                        </div>
+                        <div>
+                            <label for="font-family-selector" class="block text-sm font-medium text-gray-700">字体类型</label>
+                            <select id="font-family-selector" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <option value="font-noto-sans" selected>Noto Sans (无衬线)</option>
+                                <option value="font-noto-serif">Noto Serif (衬线)</option>
+                                <option value="font-zcool">ZCOOL 快乐体</option>
+                            </select>
+                        </div>
+                    </div>
+                </details>
+
+                <hr/>
+
+                <details class="group">
+                     <summary class="text-xl font-bold cursor-pointer list-none flex justify-between items-center">高级设置 <span class="text-gray-500 transform group-open:rotate-90 transition-transform">▶</span></summary>
+                     <div class="mt-4 space-y-4">
+                        <div class="flex items-center justify-between p-2 bg-blue-50 rounded-lg">
+                            <span class="text-sm font-medium text-blue-800">AI 智能字号 (自动填充页面)</span>
+                            <label for="autofit-toggle" class="inline-flex relative items-center cursor-pointer">
+                                <input type="checkbox" id="autofit-toggle" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                        <div>
+                            <label for="background-image-input" class="block text-sm font-medium text-gray-700">背景图 URL</label>
+                            <input id="background-image-input" type="text" placeholder="粘贴图片链接..." class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label for="watermark-input" class="block text-sm font-medium text-gray-700">文本水印</label>
+                            <input id="watermark-input" type="text" placeholder="输入水印文字..." class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium text-gray-700">启用 Markdown</span>
+                            <label for="markdown-toggle" class="inline-flex relative items-center cursor-pointer">
+                                <input type="checkbox" id="markdown-toggle" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                        <div>
+                            <label for="image-quality-selector" class="block text-sm font-medium text-gray-700">图片质量</label>
+                            <select id="image-quality-selector" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <option value="1">标准 (1x)</option>
+                                <option value="2" selected>高清 (2x)</option>
+                                <option value="3">超高清 (3x)</option>
+                            </select>
+                        </div>
+                     </div>
+                </details>
+
+                 <hr/>
+                 <div>
+                    <h3 class="text-xl font-bold mb-4">操作与分页</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label for="chars-per-page" class="block text-sm font-medium text-gray-700">每页字数限制: <span id="chars-per-page-value" class="font-bold text-blue-600">300</span></label>
+                            <input id="chars-per-page" type="range" min="100" max="800" value="300" step="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-2">
+                        </div>
+                         <button id="generate-preview-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-300 shadow-md">1. 生成/更新预览</button>
+                        <button id="download-btn" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition-colors duration-300 shadow-md">2. 下载当前页</button>
+                         <button id="download-all-btn" class="w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors duration-300 shadow-md">3. 打包下载全部</button>
+                        <button id="reset-settings-btn" class="w-full bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition-colors duration-300 shadow-md">清空所有数据</button>
+                    </div>
+
+                    <!-- 快捷键提示 -->
+                    <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                        <h4 class="text-sm font-bold text-blue-800 mb-2">快捷键</h4>
+                        <div class="text-xs text-blue-600 space-y-1">
+                            <div>Ctrl+S: 保存当前页</div>
+                            <div>Ctrl+D: 下载当前页</div>
+                            <div>Ctrl+Enter: 生成预览</div>
+                            <div>←→: 切换页面</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：编辑和预览区域 -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold">文本内容</h3>
+                        <button id="add-new-page-btn" class="bg-gray-700 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-800 transition-colors duration-300 shadow-sm">+ 添加新页面</button>
+                    </div>
+                    <input id="title-input" type="text" placeholder="输入标题..." class="w-full p-3 border-gray-300 rounded-md shadow-sm text-2xl font-bold mb-4 focus:ring-blue-500 focus:border-blue-500">
+                    <textarea id="content-textarea" placeholder="在此输入或粘贴您的正文内容。支持 **Markdown** (加粗) 和 *Markdown* (斜体)。" class="w-full h-64 p-3 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                    <h3 class="text-xl font-bold mb-4">效果预览</h3>
+                    <div id="preview-area-wrapper" class="flex justify-center">
+                        <div id="preview-area" class="relative w-full h-full flex flex-col overflow-hidden transition-all duration-300">
+                            <h2 id="preview-title" class="title text-4xl font-bold mb-6 break-words"></h2>
+                            <div id="preview-content" class="whitespace-pre-wrap break-words flex-grow"></div>
+                            <div id="preview-page-number" class="page-number absolute bottom-4 right-6 text-sm"></div>
+                            <div id="preview-watermark" class="watermark absolute inset-0 flex items-center justify-center text-8xl font-bold select-none pointer-events-none -rotate-12"></div>
+                        </div>
+                    </div>
+                    <div id="pagination-controls" class="flex justify-center items-center mt-4 space-x-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 浏览器兼容性检查
+        function checkBrowserCompatibility() {
+            const requiredFeatures = {
+                'localStorage': typeof Storage !== 'undefined',
+                'Promise': typeof Promise !== 'undefined',
+                'fetch': typeof fetch !== 'undefined',
+                'URL': typeof URL !== 'undefined'
+            };
+
+            const unsupported = Object.entries(requiredFeatures)
+                .filter(([feature, supported]) => !supported)
+                .map(([feature]) => feature);
+
+            if (unsupported.length > 0) {
+                alert(`您的浏览器不支持以下功能，可能影响使用体验：${unsupported.join(', ')}\n建议使用Chrome、Firefox、Safari或Edge的最新版本。`);
+                return false;
+            }
+            return true;
+        }
+
+        // 检查关键库是否加载成功
+        function checkLibrariesLoaded() {
+            const libraries = {
+                'html2canvas': typeof html2canvas !== 'undefined',
+                'JSZip': typeof JSZip !== 'undefined',
+                'marked': typeof marked !== 'undefined',
+                'DOMPurify': typeof DOMPurify !== 'undefined'
+            };
+
+            const missing = Object.entries(libraries)
+                .filter(([lib, loaded]) => !loaded)
+                .map(([lib]) => lib);
+
+            if (missing.length > 0) {
+                console.error('缺少必要的库:', missing);
+                alert(`加载失败：${missing.join(', ')}\n请检查网络连接或刷新页面重试。`);
+                return false;
+            }
+            return true;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // 检查浏览器兼容性和库加载状态
+            if (!checkBrowserCompatibility() || !checkLibrariesLoaded()) {
+                return;
+            }
+            const getEl = (id) => document.getElementById(id);
+            const APP_STORAGE_KEY = 'textToImageGeneratorState_v4';
+
+            // --- DOM元素获取 ---
+            const titleInput = getEl('title-input'), contentTextarea = getEl('content-textarea');
+            const previewArea = getEl('preview-area'), previewTitle = getEl('preview-title'), previewContent = getEl('preview-content'), previewPageNumber = getEl('preview-page-number'), previewWatermark = getEl('preview-watermark');
+            const fontFamilySelector = getEl('font-family-selector');
+            const charsPerPageSlider = getEl('chars-per-page'), charsPerPageValue = getEl('chars-per-page-value');
+            const paddingSlider = getEl('padding-slider'), paddingValue = getEl('padding-value');
+            const lineHeightSlider = getEl('line-height-slider'), lineHeightValue = getEl('line-height-value');
+            const letterSpacingSlider = getEl('letter-spacing-slider'), letterSpacingValue = getEl('letter-spacing-value');
+            const fontSizeSlider = getEl('font-size-slider'), fontSizeValue = getEl('font-size-value'), fontSizeControl = getEl('font-size-control');
+            const generatePreviewBtn = getEl('generate-preview-btn'), downloadBtn = getEl('download-btn');
+            const downloadAllBtn = getEl('download-all-btn'), addNewPageBtn = getEl('add-new-page-btn'), resetSettingsBtn = getEl('reset-settings-btn');
+            const paginationControls = getEl('pagination-controls');
+            const backgroundImageInput = getEl('background-image-input'), watermarkInput = getEl('watermark-input'), markdownToggle = getEl('markdown-toggle'), autofitToggle = getEl('autofit-toggle');
+            const imageQualitySelector = getEl('image-quality-selector');
+            const modal = getEl('custom-confirm-modal'), modalTitle = getEl('modal-title'), modalMessage = getEl('modal-message'), modalConfirmBtn = getEl('modal-confirm-btn'), modalCancelBtn = getEl('modal-cancel-btn');
+
+            // --- 工具函数 ---
+            // 验证URL安全性
+            function isValidUrl(string) {
+                try {
+                    const url = new URL(string);
+                    return url.protocol === 'http:' || url.protocol === 'https:';
+                } catch (_) {
+                    return false;
+                }
+            }
+
+            // 显示用户友好的错误提示
+            function showErrorMessage(message) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+                errorDiv.textContent = message;
+                document.body.appendChild(errorDiv);
+                setTimeout(() => {
+                    errorDiv.remove();
+                }, 3000);
+            }
+
+            // 显示成功提示
+            function showSuccessMessage(message) {
+                const successDiv = document.createElement('div');
+                successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+                successDiv.textContent = message;
+                document.body.appendChild(successDiv);
+                setTimeout(() => {
+                    successDiv.remove();
+                }, 2000);
+            }
+
+            // 防抖函数
+            function debounce(func, wait) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            }
+
+            // 安全的文件名处理
+            function sanitizeFilename(filename) {
+                return filename
+                    .replace(/[<>:"/\\|?*]/g, '') // 移除非法字符
+                    .replace(/\s+/g, '_') // 空格替换为下划线
+                    .substring(0, 20); // 限制长度
+            }
+
+            // 内存管理工具
+            function releaseCanvasMemory(canvas) {
+                if (canvas && canvas.getContext) {
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    }
+                    canvas.width = 1;
+                    canvas.height = 1;
+                }
+            }
+
+            // 节流函数（用于高频事件）
+            function throttle(func, limit) {
+                let inThrottle;
+                return function() {
+                    const args = arguments;
+                    const context = this;
+                    if (!inThrottle) {
+                        func.apply(context, args);
+                        inThrottle = true;
+                        setTimeout(() => inThrottle = false, limit);
+                    }
+                }
+            }
+
+            // 检查内容大小限制
+            function checkContentSize(content) {
+                const maxSize = 1024 * 1024; // 1MB
+                const contentSize = new Blob([content]).size;
+                if (contentSize > maxSize) {
+                    showErrorMessage('内容过大，请减少文字数量或分页处理');
+                    return false;
+                }
+                return true;
+            }
+
+            // 检查页面数量限制
+            function checkPageLimit(pageCount) {
+                const maxPages = 50;
+                if (pageCount > maxPages) {
+                    showErrorMessage(`页面数量过多（${pageCount}页），最多支持${maxPages}页`);
+                    return false;
+                }
+                return true;
+            }
+
+            // --- 状态管理 ---
+            const defaultState = {
+                pages: [{
+                    title: '欢迎使用AI智能排版版',
+                    content: '开启“AI智能字号”开关，体验文字自动铺满页面的神奇效果！'
+                    // 移除页面级fontSize，所有页面使用全局字体大小
+                }],
+                currentPageIndex: 0,
+                settings: {
+                    fontFamily: 'font-noto-sans',
+                    fontSize: 20,
+                    charsPerPage: 300,
+                    template: 'template-modern',
+                    padding: 8,
+                    lineHeight: 1.75,
+                    letterSpacing: 0.025,
+                    backgroundImage: '',
+                    watermark: 'Gemini AI',
+                    useMarkdown: true,
+                    autoFitFontSize: false,
+                    imageQuality: 2,
+                }
+            };
+            // 安全的状态加载
+            let state;
+            try {
+                state = JSON.parse(localStorage.getItem(APP_STORAGE_KEY)) || defaultState;
+                // 清理旧数据：移除页面级的fontSize属性，统一使用全局字体大小
+                if (state.pages) {
+                    state.pages = state.pages.map(page => ({
+                        title: page.title,
+                        content: page.content
+                        // 不再保存页面级的fontSize
+                    }));
+                }
+            } catch (e) {
+                console.error('加载状态失败:', e);
+                state = defaultState;
+            }
+
+            // --- 核心功能函数 ---
+            // 安全的状态保存
+            const saveState = () => {
+                try {
+                    localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state));
+                } catch (e) {
+                    console.error('保存失败:', e);
+                    showErrorMessage('保存失败，可能是存储空间不足');
+                }
+            };
+
+            function renderApp() {
+                renderControls();
+                renderEditor();
+                renderPreview();
+                renderPagination();
+                saveState();
+            }
+            
+            function renderControls() {
+                const s = state.settings;
+                // 修复：避免toggle导致状态不一致，明确设置边框状态
+                document.querySelectorAll('.template-btn').forEach(b => {
+                    b.classList.remove('border-4', 'border-blue-600');
+                    if (b.dataset.template === s.template) {
+                        b.classList.add('border-4', 'border-blue-600');
+                    }
+                });
+                paddingSlider.value = s.padding; paddingValue.textContent = s.padding;
+                lineHeightSlider.value = s.lineHeight; lineHeightValue.textContent = parseFloat(s.lineHeight).toFixed(2);
+                letterSpacingSlider.value = s.letterSpacing; letterSpacingValue.textContent = parseFloat(s.letterSpacing).toFixed(3);
+                fontFamilySelector.value = s.fontFamily;
+                // 所有页面使用统一的全局字体大小
+                fontSizeSlider.value = s.fontSize;
+                fontSizeValue.textContent = s.fontSize;
+                charsPerPageSlider.value = s.charsPerPage; charsPerPageValue.textContent = s.charsPerPage;
+                backgroundImageInput.value = s.backgroundImage;
+                watermarkInput.value = s.watermark;
+                markdownToggle.checked = s.useMarkdown;
+                autofitToggle.checked = s.autoFitFontSize;
+                imageQualitySelector.value = s.imageQuality;
+                fontSizeControl.style.display = s.autoFitFontSize ? 'none' : 'block';
+            }
+
+            function renderEditor() {
+                const currentPage = state.pages[state.currentPageIndex];
+                if (currentPage) {
+                    titleInput.value = currentPage.title;
+                    contentTextarea.value = currentPage.content;
+                }
+            }
+            
+            /**
+             * 智能计算最适字体大小（改进版）
+             * @param {HTMLElement} container - The content container element.
+             * @returns {number} The optimal font size in pixels.
+             */
+            function calculateFitFontSize(container) {
+                if (!container.textContent) return state.settings.fontSize;
+
+                const containerHeight = container.clientHeight;
+                // 修复：检查容器高度是否有效
+                if (containerHeight <= 0) return state.settings.fontSize;
+
+                let low = 1, high = 200, bestSize = state.settings.fontSize;
+                const originalFontSize = container.style.fontSize;
+
+                // Binary search for the best font size
+                for(let i = 0; i < 10 && low <= high; i++) { // 增加迭代次数并添加边界检查
+                    let mid = Math.floor((low + high) / 2);
+                    if (mid <= 0) break;
+
+                    container.style.fontSize = mid + 'px';
+
+                    if (container.scrollHeight > containerHeight) {
+                        high = mid - 1;
+                    } else {
+                        bestSize = mid;
+                        low = mid + 1;
+                    }
+                }
+
+                // 恢复原始样式
+                container.style.fontSize = originalFontSize;
+                return Math.max(bestSize, 8); // 确保最小字体大小
+            }
+
+            function renderPreview() {
+                const currentPage = state.pages[state.currentPageIndex];
+                if (!currentPage) return;
+
+                previewTitle.textContent = currentPage.title;
+                if (state.settings.useMarkdown) {
+                    // 安全的Markdown解析 + HTML净化
+                    try {
+                        const rawHtml = marked.parse(currentPage.content || '', {
+                            breaks: true
+                        });
+                        // 使用DOMPurify净化HTML，防止XSS攻击
+                        const cleanHtml = DOMPurify.sanitize(rawHtml, {
+                            ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre'],
+                            ALLOWED_ATTR: []
+                        });
+                        previewContent.innerHTML = cleanHtml;
+                    } catch (e) {
+                        console.error('Markdown解析失败:', e);
+                        previewContent.textContent = currentPage.content;
+                        showErrorMessage('Markdown解析失败，已切换到纯文本模式');
+                    }
+                } else {
+                    previewContent.textContent = currentPage.content;
+                }
+
+                previewPageNumber.textContent = state.pages.length > 1 ? `${state.currentPageIndex + 1} / ${state.pages.length}` : '';
+                previewWatermark.textContent = state.settings.watermark;
+
+                previewArea.className = 'relative w-full h-full flex flex-col overflow-hidden transition-all duration-300';
+                previewArea.classList.add(state.settings.template, state.settings.fontFamily);
+
+                const root = document.documentElement;
+                root.style.setProperty('--preview-padding', `${state.settings.padding * 0.25}rem`);
+                root.style.setProperty('--line-height', state.settings.lineHeight);
+                root.style.setProperty('--letter-spacing', `${state.settings.letterSpacing}em`);
+
+                // 安全的背景图片设置
+                if (state.settings.backgroundImage && isValidUrl(state.settings.backgroundImage)) {
+                    previewArea.style.backgroundImage = `url('${state.settings.backgroundImage}')`;
+                } else {
+                    previewArea.style.backgroundImage = 'none';
+                }
+
+                // Apply font size - 所有页面使用统一字体大小
+                if (state.settings.autoFitFontSize) {
+                    // AI智能字号：基于第一页内容计算，所有页面使用相同大小
+                    if (state.currentPageIndex === 0) {
+                        // 在第一页时计算最适字体大小
+                        const optimalSize = calculateFitFontSize(previewContent);
+                        // 保存到全局设置，所有页面共享
+                        state.settings.fontSize = optimalSize;
+                        root.style.setProperty('--font-size', `${optimalSize}px`);
+                    } else {
+                        // 其他页面：如果还没有基于第一页计算过，先临时切换到第一页计算
+                        if (!state.settings.autoFitCalculated) {
+                            const firstPage = state.pages[0];
+                            if (firstPage) {
+                                // 临时渲染第一页内容来计算字体大小
+                                const tempContent = previewContent.textContent;
+                                previewContent.textContent = firstPage.content;
+                                const optimalSize = calculateFitFontSize(previewContent);
+                                // 恢复当前页面内容
+                                previewContent.textContent = tempContent;
+                                // 保存计算结果
+                                state.settings.fontSize = optimalSize;
+                                state.settings.autoFitCalculated = true;
+                            }
+                        }
+                        // 使用基于第一页计算的字体大小
+                        root.style.setProperty('--font-size', `${state.settings.fontSize}px`);
+                    }
+                } else {
+                    // 手动模式：重置自动计算标记，所有页面使用全局设置的字体大小
+                    state.settings.autoFitCalculated = false;
+                    root.style.setProperty('--font-size', `${state.settings.fontSize}px`);
+                }
+            }
+
+            function renderPagination() {
+                paginationControls.innerHTML = '';
+                if (state.pages.length <= 1) return;
+                state.pages.forEach((_, index) => {
+                    const pageBtn = document.createElement('button');
+                    pageBtn.textContent = index + 1;
+                    pageBtn.className = `w-10 h-10 rounded-full transition-colors duration-200 border ${index === state.currentPageIndex ? 'bg-blue-600 text-white border-blue-700' : 'bg-white text-blue-600 border-blue-300 hover:bg-blue-100'}`;
+                    pageBtn.onclick = () => {
+                        // 切换页面前先保存当前页面的内容
+                        if (state.currentPageIndex !== index) {
+                            const currentPage = state.pages[state.currentPageIndex];
+                            if (currentPage) {
+                                currentPage.title = titleInput.value;
+                                currentPage.content = contentTextarea.value;
+                                // 不保存字体大小，所有页面使用统一字体大小
+                            }
+                        }
+                        state.currentPageIndex = index;
+                        renderApp();
+                    };
+                    paginationControls.appendChild(pageBtn);
+                });
+            }
+
+            function splitTextIntoPages(text, limit) {
+                if (!text) return [''];
+                // 修复：不使用捕获组，避免分隔符被包含在结果中
+                const paragraphs = text.split(/\n\s*\n/).map(p => p.trim()).filter(p => p);
+                const pages = [];
+                let currentPageContent = '';
+                for (const para of paragraphs) {
+                    if (para.length > limit) {
+                        if (currentPageContent.length > 0) pages.push(currentPageContent.trim());
+                        for (let i = 0; i < para.length; i += limit) pages.push(para.substring(i, i + limit));
+                        currentPageContent = '';
+                    } else if (currentPageContent.length + para.length + 1 > limit) {
+                        pages.push(currentPageContent.trim());
+                        currentPageContent = para + '\n\n';
+                    } else {
+                        currentPageContent += para + '\n\n';
+                    }
+                }
+                if (currentPageContent.trim().length > 0) pages.push(currentPageContent.trim());
+                return pages.length > 0 ? pages : [''];
+            }
+
+            // --- Modal Logic ---
+            let confirmCallback = null;
+            let previousFocusElement = null;
+
+            function showConfirmModal(title, message, onConfirm) {
+                // 保存当前焦点元素
+                previousFocusElement = document.activeElement;
+
+                modalTitle.textContent = title;
+                modalMessage.textContent = message;
+                confirmCallback = onConfirm;
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    modal.classList.add('opacity-100');
+                    // 将焦点设置到取消按钮
+                    modalCancelBtn.focus();
+                }, 10);
+
+                // 阻止背景滚动
+                document.body.style.overflow = 'hidden';
+            }
+
+            function hideConfirmModal() {
+                modal.classList.remove('opacity-100');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    // 恢复背景滚动
+                    document.body.style.overflow = '';
+                    // 恢复焦点
+                    if (previousFocusElement) {
+                        previousFocusElement.focus();
+                        previousFocusElement = null;
+                    }
+                }, 300);
+                confirmCallback = null;
+            }
+
+            // 模态框键盘导航
+            function handleModalKeydown(e) {
+                if (e.key === 'Escape') {
+                    hideConfirmModal();
+                } else if (e.key === 'Tab') {
+                    // 限制Tab键在模态框内循环
+                    const focusableElements = modal.querySelectorAll('button');
+                    const firstElement = focusableElements[0];
+                    const lastElement = focusableElements[focusableElements.length - 1];
+
+                    if (e.shiftKey && document.activeElement === firstElement) {
+                        e.preventDefault();
+                        lastElement.focus();
+                    } else if (!e.shiftKey && document.activeElement === lastElement) {
+                        e.preventDefault();
+                        firstElement.focus();
+                    }
+                }
+            }
+            modalConfirmBtn.addEventListener('click', () => {
+                if (confirmCallback) confirmCallback();
+                hideConfirmModal();
+            });
+            modalCancelBtn.addEventListener('click', hideConfirmModal);
+
+            // 添加模态框键盘事件监听
+            modal.addEventListener('keydown', handleModalKeydown);
+
+            // --- Event Listeners ---
+            const setupListeners = () => {
+                document.querySelectorAll('.template-btn').forEach(btn => btn.addEventListener('click', () => { state.settings.template = btn.dataset.template; renderApp(); }));
+                paddingSlider.addEventListener('input', e => { state.settings.padding = e.target.value; renderApp(); });
+                lineHeightSlider.addEventListener('input', e => { state.settings.lineHeight = e.target.value; renderApp(); });
+                letterSpacingSlider.addEventListener('input', e => { state.settings.letterSpacing = e.target.value; renderApp(); });
+                fontFamilySelector.addEventListener('change', e => { state.settings.fontFamily = e.target.value; renderApp(); });
+                fontSizeSlider.addEventListener('input', e => {
+                    // 更新全局字体大小，所有页面统一使用
+                    state.settings.fontSize = parseInt(e.target.value);
+                    renderApp();
+                });
+                backgroundImageInput.addEventListener('input', e => { state.settings.backgroundImage = e.target.value; renderApp(); });
+                watermarkInput.addEventListener('input', e => { state.settings.watermark = e.target.value; renderApp(); });
+                markdownToggle.addEventListener('change', e => { state.settings.useMarkdown = e.target.checked; renderApp(); });
+                autofitToggle.addEventListener('change', e => { state.settings.autoFitFontSize = e.target.checked; renderApp(); });
+                imageQualitySelector.addEventListener('change', e => { state.settings.imageQuality = parseInt(e.target.value); saveState(); });
+                charsPerPageSlider.addEventListener('input', e => { state.settings.charsPerPage = parseInt(e.target.value, 10); charsPerPageValue.textContent = e.target.value; saveState(); });
+
+                // 添加防抖处理的输入监听
+                const debouncedTitleUpdate = debounce(() => {
+                    state.pages[state.currentPageIndex].title = titleInput.value;
+                    renderPreview();
+                    saveState();
+                }, 300);
+
+                const debouncedContentUpdate = debounce(() => {
+                    state.pages[state.currentPageIndex].content = contentTextarea.value;
+                    renderPreview();
+                    saveState();
+                }, 300);
+
+                titleInput.addEventListener('input', debouncedTitleUpdate);
+                contentTextarea.addEventListener('input', debouncedContentUpdate);
+
+                generatePreviewBtn.addEventListener('click', () => {
+                    const fullContent = contentTextarea.value;
+                    const title = titleInput.value || '无标题';
+
+                    // 检查内容大小
+                    if (!checkContentSize(fullContent)) {
+                        return;
+                    }
+
+                    const contentPages = splitTextIntoPages(fullContent, state.settings.charsPerPage);
+
+                    // 检查页面数量
+                    if (!checkPageLimit(contentPages.length)) {
+                        return;
+                    }
+
+                    state.pages = contentPages.map(content => ({
+                        title,
+                        content
+                        // 所有页面使用全局字体大小，不需要页面级fontSize
+                    }));
+                    state.currentPageIndex = 0;
+                    renderApp();
+                    showSuccessMessage(`成功生成${contentPages.length}页内容`);
+                });
+
+                downloadBtn.addEventListener('click', () => {
+                    const page = state.pages[state.currentPageIndex];
+                    const filename = `${sanitizeFilename(page.title || '无标题')}_第${state.currentPageIndex + 1}页.png`;
+
+                    // 添加loading状态
+                    downloadBtn.disabled = true;
+                    downloadBtn.innerHTML = '<span class="loading-spinner"></span>生成中...';
+
+                    html2canvas(previewArea, { scale: state.settings.imageQuality, useCORS: true, backgroundColor: null })
+                        .then(canvas => {
+                            const link = document.createElement('a');
+                            link.download = filename;
+                            link.href = canvas.toDataURL('image/png');
+                            link.click();
+                            showSuccessMessage('图片下载成功！');
+                        })
+                        .catch(err => {
+                            console.error('图片生成失败!', err);
+                            showErrorMessage('图片生成失败，请重试');
+                        })
+                        .finally(() => {
+                            downloadBtn.disabled = false;
+                            downloadBtn.textContent = '2. 下载当前页';
+                        });
+                });
+            
+                downloadAllBtn.addEventListener('click', async () => {
+                    // 检查页面数量限制
+                    if (!checkPageLimit(state.pages.length)) {
+                        return;
+                    }
+
+                    const originalIndex = state.currentPageIndex;
+                    const zip = new JSZip();
+                    const originalText = downloadAllBtn.textContent;
+                    downloadAllBtn.disabled = true;
+
+                    try {
+                        for (let i = 0; i < state.pages.length; i++) {
+                            downloadAllBtn.textContent = `正在生成 ${i + 1}/${state.pages.length}...`;
+                            state.currentPageIndex = i;
+                            renderApp();
+                            await new Promise(resolve => setTimeout(resolve, 100));
+
+                            const canvas = await html2canvas(previewArea, { scale: state.settings.imageQuality, useCORS: true, backgroundColor: null });
+                            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                            const page = state.pages[i];
+                            zip.file(`${sanitizeFilename(page.title || '无标题')}_第${i + 1}页.png`, blob);
+
+                            // 释放canvas内存
+                            releaseCanvasMemory(canvas);
+                        }
+
+                        downloadAllBtn.textContent = '正在打包...';
+                        const zipBlob = await zip.generateAsync({type:"blob"});
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(zipBlob);
+                        link.download = `${sanitizeFilename(state.pages[0].title || '无标题')}_全部.zip`;
+                        link.click();
+                        URL.revokeObjectURL(link.href);
+                        showSuccessMessage('批量下载完成！');
+                    } catch (error) {
+                        console.error('批量下载失败:', error);
+                        showErrorMessage('批量下载失败，请重试');
+                    } finally {
+                        downloadAllBtn.disabled = false;
+                        downloadAllBtn.textContent = originalText;
+                        state.currentPageIndex = originalIndex;
+                        renderApp();
+                    }
+                });
+
+                addNewPageBtn.addEventListener('click', () => {
+                    const newPageIndex = state.pages.length;
+                    state.pages.push({
+                        title: '新页面',
+                        content: ''
+                        // 新页面使用全局字体大小，不需要页面级fontSize
+                    });
+                    state.currentPageIndex = newPageIndex;
+                    renderApp();
+                });
+
+                resetSettingsBtn.addEventListener('click', () => {
+                    showConfirmModal('清空所有数据', '您确定要清空所有数据和设置吗？此操作无法撤销。', () => {
+                        localStorage.removeItem(APP_STORAGE_KEY);
+                        state = JSON.parse(JSON.stringify(defaultState));
+                        renderApp();
+                    });
+                });
+            };
+
+            // --- 键盘快捷键 ---
+            document.addEventListener('keydown', (e) => {
+                // Ctrl+S 保存当前页面
+                if (e.ctrlKey && e.key === 's') {
+                    e.preventDefault();
+                    state.pages[state.currentPageIndex].title = titleInput.value;
+                    state.pages[state.currentPageIndex].content = contentTextarea.value;
+                    saveState();
+                    showSuccessMessage('页面已保存');
+                }
+
+                // Ctrl+D 下载当前页
+                if (e.ctrlKey && e.key === 'd') {
+                    e.preventDefault();
+                    downloadBtn.click();
+                }
+
+                // Ctrl+Enter 生成预览
+                if (e.ctrlKey && e.key === 'Enter') {
+                    e.preventDefault();
+                    generatePreviewBtn.click();
+                }
+
+                // 左右箭头切换页面
+                if (e.key === 'ArrowLeft' && state.currentPageIndex > 0) {
+                    const currentPage = state.pages[state.currentPageIndex];
+                    if (currentPage) {
+                        currentPage.title = titleInput.value;
+                        currentPage.content = contentTextarea.value;
+                        // 不保存字体大小，所有页面使用统一字体大小
+                    }
+                    state.currentPageIndex--;
+                    renderApp();
+                }
+
+                if (e.key === 'ArrowRight' && state.currentPageIndex < state.pages.length - 1) {
+                    const currentPage = state.pages[state.currentPageIndex];
+                    if (currentPage) {
+                        currentPage.title = titleInput.value;
+                        currentPage.content = contentTextarea.value;
+                        // 不保存字体大小，所有页面使用统一字体大小
+                    }
+                    state.currentPageIndex++;
+                    renderApp();
+                }
+            });
+
+            // --- 初始化 ---
+            setupListeners();
+            renderApp();
+        });
+    </script>
+</body>
+</html>

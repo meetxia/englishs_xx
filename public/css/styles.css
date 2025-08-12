@@ -315,6 +315,54 @@ span[onclick*="pronounceWord"] {
     hyphens: none !important;
 }
 
+/* 音频功能说明样式 */
+#audio-info-toggle {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: #f0f9ff;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+#audio-info-toggle:hover {
+    background-color: #e0f2fe;
+}
+
+#audio-info-toggle svg {
+    transition: transform 0.3s ease;
+}
+
+#audio-info-panel {
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+#audio-info-panel.hidden {
+    height: 0;
+    padding: 0;
+    margin: 0;
+    opacity: 0;
+}
+
+#audio-info-panel:not(.hidden) {
+    height: auto;
+    opacity: 1;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* 为不同浏览器添加兼容性 */
 @supports (word-break: keep-all) {
     .highlight, .highlight-correct {
@@ -326,5 +374,102 @@ span[onclick*="pronounceWord"] {
     .highlight, .highlight-correct {
         word-break: normal;
         white-space: nowrap;
+    }
+}
+
+/* 图片格式调整模态框样式 */
+.template-option {
+    cursor: pointer;
+    padding: 8px;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.template-option:hover {
+    border-color: #e5e7eb;
+    background-color: #f9fafb;
+}
+
+.template-option.active {
+    border-color: #3b82f6;
+    background-color: #eff6ff;
+}
+
+.color-theme {
+    cursor: pointer;
+    padding: 4px;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.color-theme:hover {
+    border-color: #e5e7eb;
+}
+
+.color-theme.active {
+    border-color: #3b82f6;
+    background-color: #eff6ff;
+}
+
+/* 滑块样式 */
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: #e5e7eb;
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #3b82f6;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #3b82f6;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* 预览画布样式 */
+#previewCanvas {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+/* 模态框响应式设计 */
+@media (max-width: 768px) {
+    #imageFormatModal .max-w-6xl {
+        max-width: 95vw;
+    }
+
+    #imageFormatModal .flex {
+        flex-direction: column;
+    }
+
+    #imageFormatModal .w-1\/3 {
+        width: 100%;
+        max-height: 50vh;
+    }
+
+    #imageFormatModal .flex-1 {
+        width: 100%;
+        padding: 1rem;
     }
 }

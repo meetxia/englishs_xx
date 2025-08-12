@@ -30,15 +30,18 @@ let pronunciationSettings = {
 function getLocalAudioPath(word, accent = null) {
     const selectedAccent = accent || pronunciationSettings.accent;
     const fileName = `${word.toLowerCase()}_${selectedAccent}.mp3`;
-    return `/data/yinpin/${fileName}`;
+    return `/audio/${fileName}`;
 }
 
 // 播放本地音频文件
 function playLocalAudio(word, accent = null) {
     return new Promise((resolve, reject) => {
         const audioPath = getLocalAudioPath(word, accent);
-        const audio = new Audio(audioPath);
-
+        const audio = new Audio();
+        
+        // 直接设置音频源并尝试播放
+        audio.src = audioPath;
+        
         audio.onloadeddata = () => {
             showSoundIndicator(`🔊 ${word} (${accent || pronunciationSettings.accent})`);
             audio.play()
@@ -51,12 +54,13 @@ function playLocalAudio(word, accent = null) {
                     reject(error);
                 });
         };
-
-        audio.onerror = (error) => {
-            console.error('本地音频加载失败:', error);
-            reject(error);
+        
+        // 简化错误处理
+        audio.onerror = () => {
+            console.error(`本地音频加载失败: ${audioPath}`);
+            reject(new Error('音频加载失败'));
         };
-
+        
         // 设置超时
         setTimeout(() => {
             if (audio.readyState === 0) {
@@ -154,36 +158,36 @@ async function pronounceWord(word) {
 
     // 确保用户已经与页面交互
     ensureUserInteraction();
-
+    
     // 先播放点击音效
     playWordClickSound();
 
     try {
-        // 尝试播放本地音频
+        // 直接尝试播放本地音频
         await playLocalAudio(word);
+        // 播放成功就结束，不需要其他操作
     } catch (error) {
-        console.log('本地音频播放失败，尝试备用方案:', error.message);
-
+        console.log('本地音频播放失败，尝试备用方案');
+        
+        // 只有在本地播放失败时才尝试备用方案
         if (pronunciationSettings.fallbackToTTS) {
-            // 使用TTS作为备用方案
             try {
                 addToSpeechQueue(word);
             } catch (ttsError) {
-                console.log('TTS播放失败，尝试在线词典:', ttsError.message);
+                console.log('TTS也失败了，尝试在线词典');
                 try {
                     await playOnlineDictionaryAudio(word);
                 } catch (onlineError) {
-                    console.error('所有发音方案都失败了:', onlineError.message);
+                    console.error('所有发音方案都失败了');
                     showSoundIndicator("🔇 发音不可用");
                     playErrorSound();
                 }
             }
         } else {
-            // 直接尝试在线词典
             try {
                 await playOnlineDictionaryAudio(word);
             } catch (onlineError) {
-                console.error('在线发音失败:', onlineError.message);
+                console.error('在线发音也失败了');
                 showSoundIndicator("🔇 发音不可用");
                 playErrorSound();
             }
@@ -428,57 +432,24 @@ function updateMaxWordCount() {
     
     console.log(`字数: ${charCount}, 最大单词数: ${maxWordCount}`);
     
-    // 更新单词数量显示和控制
-    if (!document.getElementById('word-count-container')) {
-        // 创建单词数量控制容器
-        const container = document.createElement('div');
-        container.id = 'word-count-container';
-        container.className = 'mt-4';
-        
-        const label = document.createElement('label');
-        label.htmlFor = 'word-count';
-        label.className = 'block text-sm font-medium text-gray-700';
-        label.innerHTML = `单词数量: <span id="word-count-display" class="font-bold text-red-500">${wordCount}</span> / <span id="max-word-count">${maxWordCount}</span>个`;
-        
-        const slider = document.createElement('input');
-        slider.type = 'range';
-        slider.id = 'word-count';
-        slider.min = '5';
-        slider.max = maxWordCount;
-        slider.value = Math.min(wordCount, maxWordCount);
-        slider.className = 'w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer';
-        
-        slider.addEventListener('input', (e) => {
-            wordCount = parseInt(e.target.value);
-            document.getElementById('word-count-display').textContent = wordCount;
-            
-            // 如果有选中的分类，重新加载随机单词
-            if (selectedWordList) {
-                loadRandomWordsForCategory(selectedWordList);
-            }
-        });
-        
-        container.appendChild(label);
-        container.appendChild(slider);
-        
-        // 找到参数设置部分
-        const paramSection = document.querySelector('.control-panel > div:nth-child(4)');
-        if (paramSection) {
-            paramSection.appendChild(container);
-        }
-    } else {
-        // 更新现有控件的最大值
-        const wordCountSlider = document.getElementById('word-count');
+    // 获取单词滑块元素
+    const wordCountSlider = document.getElementById('word-count-slider');
+    
+    if (wordCountSlider) {
+        // 更新最大值
         wordCountSlider.max = maxWordCount;
         
         // 如果当前设置值超过新的最大值，则调整为最大值
         if (wordCount > maxWordCount) {
             wordCount = maxWordCount;
             wordCountSlider.value = wordCount;
-            document.getElementById('word-count-display').textContent = wordCount;
         }
         
+        // 更新显示
+        document.getElementById('word-count-display').textContent = wordCount;
         document.getElementById('max-word-count').textContent = maxWordCount;
+    } else {
+        console.error('未找到单词数量滑块元素');
     }
 }
 
@@ -755,6 +726,8 @@ async function callAIModel(prompt, isJson = false, model = 'qwen') {
         return callQwen(prompt, isJson);
     } else if (model === 'gemini') {
         return callGemini(prompt, isJson);
+    } else if (model === 'deepseek') {
+        return callDeepSeek(prompt, isJson);
     } else {
         throw new Error(`不支持的模型: ${model}`);
     }
@@ -777,6 +750,47 @@ async function callGemini(prompt, isJson = false) {
         return isJson ? JSON.parse(text) : text;
     } else {
         throw new Error('Invalid response from API');
+    }
+}
+
+async function callDeepSeek(prompt, isJson = false) {
+    const apiUrl = `/api/generate`;
+    const payload = {
+        prompt,
+        isJson,
+        model: 'deepseek'
+    };
+    
+    try {
+        const response = await fetch(apiUrl, { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(payload) 
+        });
+        
+        if (!response.ok) {
+            let errorMessage = `API调用失败: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                if (errorData && errorData.error) {
+                    errorMessage = `${errorData.error}: ${errorData.details || ''}`;
+                }
+            } catch (e) {
+                // JSON解析失败，使用默认错误消息
+            }
+            throw new Error(errorMessage);
+        }
+        
+        const result = await response.json();
+        
+        if (result.text) {
+            return isJson ? JSON.parse(result.text) : result.text;
+        } else {
+            throw new Error('API返回无效响应: 缺少text字段');
+        }
+    } catch (error) {
+        console.error('调用API失败:', error);
+        throw new Error(`调用DeepSeek API失败: ${error.message}`);
     }
 }
 
@@ -1023,185 +1037,314 @@ function renderCards(story, wordsWithDetails) {
     });
 }
 
-function downloadCard(elementId, filename) {
+// 修改downloadCard函数 - 使用新的html2img集成功能
+function downloadCard(elementId, filename, mode) {
+    console.log('准备下载卡片:', elementId, filename, mode);
+
+    // 检查html2img集成是否可用
+    if (!window.html2imgIntegration) {
+        console.error('HTML2IMG集成模块未加载');
+        alert('图片生成功能未准备就绪，请刷新页面重试');
+        return;
+    }
+
+    // 获取卡片内容
     const cardElement = document.getElementById(elementId);
-    const originalContent = cardElement.innerHTML;
+    if (!cardElement) {
+        console.error('找不到元素:', elementId);
+        return;
+    }
+
+    // 提取卡片数据
+    const cardData = extractCardData(cardElement, mode, filename);
+
+    // 使用新的html2img集成功能打开模态框
+    window.html2imgIntegration.openModal(cardData);
+}
+
+// 提取卡片数据的辅助函数
+function extractCardData(cardElement, mode, filename) {
+    const titleElement = cardElement.querySelector('h2');
+    const title = titleElement ? titleElement.textContent : '学习卡片';
+
+    let content = '';
+
+    // 根据不同模式提取内容
+    switch(mode) {
+        case 'story':
+            const storyOutput = cardElement.querySelector('#story-output');
+            content = storyOutput ? storyOutput.textContent : '';
+            break;
+        case 'bilingual':
+            const studyOutput = cardElement.querySelector('#study-output');
+            content = studyOutput ? studyOutput.textContent : '';
+            break;
+        case 'vocab':
+            const vocabOutput = cardElement.querySelector('#vocab-output');
+            if (vocabOutput) {
+                // 提取单词列表内容
+                const vocabItems = vocabOutput.querySelectorAll('div[class*="justify-between"]');
+                content = Array.from(vocabItems).map(item => {
+                    const word = item.querySelector('strong') || 
+                                item.querySelector('span[class*="font-semibold"]') ||
+                                item.querySelector('span:first-child');
+                    const meaning = item.querySelector('span[class*="text-gray"]') ||
+                                   item.querySelector('span:last-child');
+                    
+                    return `${word ? word.textContent.trim() : ''}: ${meaning ? meaning.textContent.trim() : ''}`;
+                }).join('\n');
+            }
+            break;
+        case 'test':
+            const testOutput = cardElement.querySelector('#test-output');
+            content = testOutput ? testOutput.textContent : '';
+            
+            // 替换输入框为填空标记
+            content = content.replace(/___+/g, '_______');
+            break;
+        default:
+            content = cardElement.textContent || '';
+    }
+
+    return {
+        title: title,
+        content: content,
+        mode: mode,
+        filename: filename
+    };
+}
+
+// 保留原始下载函数作为备用
+function downloadCardLegacy(elementId, filename, mode) {
+    console.log('使用传统方式下载卡片:', elementId, filename, mode);
     
-    // 创建临时的3:4比例容器
+    // 创建临时容器
     const tempContainer = document.createElement('div');
-    tempContainer.className = 'card-content-export';
     tempContainer.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 600px;
-        height: 800px;
-        background: white;
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+        width: 800px;
+        min-height: 600px;
         padding: 40px;
-        box-sizing: border-box;
-        font-family: 'Noto Sans SC', 'Arial', 'Helvetica', sans-serif;
-        display: flex;
-        flex-direction: column;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-        hyphens: none;
-        z-index: -9999;
-        opacity: 0;
+        background-color: white;
+        z-index: -1;
     `;
+
+    // 复制原始内容
+    const originalContent = document.getElementById(elementId);
+    if (!originalContent) {
+        console.error('找不到元素:', elementId);
+        return;
+    }
+
+    // 克隆内容
+    tempContainer.innerHTML = originalContent.innerHTML;
     
-    // 复制内容并优化样式
-    tempContainer.innerHTML = originalContent;
+    // 处理所有SVG图标和点击事件，替换为纯文本符号
+    const allIcons = tempContainer.querySelectorAll('svg, i.fas, i.fa, i.fa-solid');
+    allIcons.forEach(icon => {
+        // 替换为音频图标符号
+        const audioSymbol = document.createElement('span');
+        audioSymbol.textContent = '🔊';
+        audioSymbol.style.cssText = `
+            display: inline-block;
+            margin: 0 4px;
+            color: #2563eb;
+            font-size: 16px;
+        `;
+        if(icon.parentNode) {
+            icon.parentNode.replaceChild(audioSymbol, icon);
+        }
+    });
     
-    // 优化标题样式
-    const title = tempContainer.querySelector('h2');
-    if (title) {
-        title.style.cssText = `
-            font-size: 32px;
-            margin-bottom: 40px;
-            text-align: center;
+    // 移除所有onclick属性，以防止JS代码影响渲染
+    const allClickables = tempContainer.querySelectorAll('[onclick]');
+    allClickables.forEach(element => {
+        element.removeAttribute('onclick');
+        element.style.cursor = 'default';
+    });
+
+    // 处理所有高亮单词
+    const allHighlights = tempContainer.querySelectorAll('.highlight, .highlight-correct, span[class*="bg-"]');
+    allHighlights.forEach(element => {
+        // 确保高亮单词不会折叠
+        element.style.cssText = `
+            display: inline-block;
+            white-space: nowrap;
+            word-break: keep-all;
+            overflow-wrap: normal;
+            hyphens: none;
+            padding: 2px 5px;
+            border-radius: 4px;
+            margin: 0 2px;
             font-weight: bold;
         `;
-    }
-    
-    // 优化内容样式
-    const content = tempContainer.querySelector('p, div:not(h2)');
-    if (content) {
-        content.style.cssText = `
-            font-size: 18px;
-            line-height: 2.2;
-            text-align: justify;
-            flex: 1;
-            display: flex;
-            align-items: flex-start;
-            flex-direction: column;
-            justify-content: flex-start;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            hyphens: none;
-        `;
-    }
-
-    // 优化所有高亮单词的样式，防止截断
-    const highlights = tempContainer.querySelectorAll('.highlight, .highlight-correct');
-    highlights.forEach(highlight => {
-        highlight.style.cssText += `
-            white-space: nowrap !important;
-            word-break: keep-all !important;
-            display: inline-block !important;
-            font-family: 'Arial', 'Helvetica', sans-serif !important;
-            font-weight: 600 !important;
-            overflow-wrap: normal !important;
-            hyphens: none !important;
-        `;
     });
 
-    // 优化中文释义的样式
-    const translations = tempContainer.querySelectorAll('.text-blue-600');
-    translations.forEach(translation => {
-        translation.style.cssText += `
-            white-space: nowrap !important;
-            display: inline-block !important;
-            margin-left: 4px !important;
-        `;
-    });
-    
-    // 如果是单词列表，特殊处理
+    // 特殊处理不同模式的内容
     if (elementId === 'card3-content') {
-        const vocabItems = tempContainer.querySelectorAll('.vocab-item');
+        // 处理单词列表，确保布局正确
+        const vocabItems = tempContainer.querySelectorAll('#vocab-output div');
         vocabItems.forEach(item => {
             item.style.cssText = `
-                padding: 12px 0;
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 10px;
+                padding-bottom: 6px;
                 border-bottom: 1px solid #e5e7eb;
-                margin-bottom: 8px;
             `;
-            
-            const wordName = item.querySelector('strong');
-            if (wordName) {
-                wordName.style.fontSize = '20px';
+
+            const wordElement = item.querySelector('strong, .text-green-700');
+            if (wordElement) {
+                wordElement.style.cssText = `
+                    font-size: 18px;
+                    font-weight: bold;
+                    color: #059669;
+                    display: inline-block;
+                    width: 120px;
+                `;
             }
-            
-            const meaning = item.querySelector('.text-gray-600');
-            if (meaning) {
-                meaning.style.fontSize = '16px';
-                meaning.style.lineHeight = '1.6';
+
+            const meaningElement = item.querySelector('.text-gray-600, div:last-child');
+            if (meaningElement) {
+                meaningElement.style.cssText = `
+                    font-size: 15px;
+                    color: #6b7280;
+                    margin-top: 4px;
+                    line-height: 1.5;
+                `;
             }
         });
     }
-    
-    // 如果是填空测试，特殊处理
+
+    // 处理填空测试
     if (elementId === 'card4-content') {
-        const testInputs = tempContainer.querySelectorAll('.test-input');
+        const testInputs = tempContainer.querySelectorAll('input, .test-input');
         testInputs.forEach(input => {
-            // 将输入框替换为下划线
             const underline = document.createElement('span');
-            underline.textContent = '________';
+            underline.textContent = '_______';
             underline.style.cssText = `
                 border-bottom: 2px solid #374151;
                 display: inline-block;
                 margin: 0 4px;
-                min-width: ${input.style.width || '60px'};
+                min-width: 60px;
                 text-align: center;
+                font-size: 16px;
             `;
-            input.parentNode.replaceChild(underline, input);
+            if (input.parentNode) {
+                input.parentNode.replaceChild(underline, input);
+            }
         });
     }
-    
-    document.body.appendChild(tempContainer);
 
-    // 等待字体加载完成和样式应用
-    document.fonts.ready.then(() => {
-        // 增加延迟，确保DOM完全渲染
+    document.body.appendChild(tempContainer);
+    
+    // 等待渲染完成
+    setTimeout(() => {
+        // 动态计算实际内容高度
+        const actualHeight = Math.max(600, tempContainer.scrollHeight + 80);
+        tempContainer.style.height = actualHeight + 'px';
+
         setTimeout(() => {
-            // 强制应用样式，确保在所有浏览器中都生效
-            const allHighlights = tempContainer.querySelectorAll('.highlight, .highlight-correct, span[onclick*="pronounceWord"]');
-            allHighlights.forEach(element => {
-                element.style.setProperty('white-space', 'nowrap', 'important');
-                element.style.setProperty('word-break', 'keep-all', 'important');
-                element.style.setProperty('display', 'inline-block', 'important');
-                element.style.setProperty('overflow-wrap', 'normal', 'important');
-                element.style.setProperty('hyphens', 'none', 'important');
-            });
-            
-            // 生成图片
             html2canvas(tempContainer, {
                 scale: 2,
                 useCORS: true,
                 backgroundColor: '#ffffff',
-                width: 600,
-                height: 800,
-                allowTaint: true,
-                foreignObjectRendering: true,
-                logging: true,
-                letterRendering: true,
-                onclone: function(clonedDoc) {
-                    // 在克隆的文档中确保样式正确应用
-                    const clonedContainer = clonedDoc.querySelector('.card-content-export');
-                    if (clonedContainer) {
-                        const highlights = clonedContainer.querySelectorAll('.highlight, .highlight-correct');
-                        highlights.forEach(highlight => {
-                            highlight.style.whiteSpace = 'nowrap';
-                            highlight.style.wordBreak = 'keep-all';
-                            highlight.style.display = 'inline-block';
-                            highlight.style.fontFamily = 'Arial, Helvetica, sans-serif';
-                        });
-                    }
+                width: 800,
+                height: actualHeight,
+                allowTaint: false,
+                foreignObjectRendering: false,
+                logging: false,
+                scrollX: 0,
+                scrollY: 0,
+                windowWidth: 800,
+                windowHeight: actualHeight,
+                onclone: function(clonedDoc, element) {
+                    // 确保克隆的元素样式正确
+                    element.style.position = 'static';
+                    element.style.top = '0';
+                    element.style.left = '0';
+                    element.style.transform = 'none';
                 }
             }).then(canvas => {
+                // 创建下载链接
                 const image = canvas.toDataURL('image/png', 1.0);
                 const link = document.createElement('a');
                 link.href = image;
                 link.download = filename;
+                document.body.appendChild(link);
                 link.click();
-                
+                document.body.removeChild(link);
+
                 // 清理临时元素
                 document.body.removeChild(tempContainer);
+                console.log('图片下载完成:', filename);
             }).catch(error => {
                 console.error('生成图片失败:', error);
-                alert('生成图片失败: ' + error.message);
+                alert('生成图片失败，请重试');
                 document.body.removeChild(tempContainer);
             });
-        }, 500); // 延迟500ms确保样式完全应用
+        }, 200);
+    }, 300);
+}
+
+// 从内容中提取高亮单词
+function extractHighlightedWords(container) {
+    const highlights = container.querySelectorAll('.highlight, .highlight-correct, span[style*="background"], span[onclick*="pronounceWord"]');
+    const words = [];
+    
+    highlights.forEach(highlight => {
+        // 提取单词文本和中文解释
+        const word = highlight.textContent.trim();
+        let meaning = '';
+        
+        // 尝试从周围元素找到中文解释
+        const nextSpan = highlight.nextElementSibling;
+        if (nextSpan && nextSpan.classList.contains('text-blue-600')) {
+            meaning = nextSpan.textContent.replace(/[()]/g, '').trim();
+        }
+        
+        // 如果找不到明确的解释，尝试从父元素文本中提取
+        if (!meaning && highlight.parentElement) {
+            const parentText = highlight.parentElement.textContent;
+            const wordIndex = parentText.indexOf(word);
+            if (wordIndex >= 0) {
+                const afterWord = parentText.substring(wordIndex + word.length);
+                const matches = afterWord.match(/[（(]([^)）]+)[)）]/);
+                if (matches && matches[1]) {
+                    meaning = matches[1].trim();
+                }
+            }
+        }
+        
+        words.push({
+            en: word,
+            cn: meaning
+        });
     });
+    
+    return words;
+}
+
+// 从单词列表中提取单词
+function extractVocabList(container) {
+    const items = container.querySelectorAll('.flex.justify-between, .border-b');
+    const words = [];
+    
+    items.forEach(item => {
+        const wordElement = item.querySelector('.font-semibold, strong');
+        const meaningElement = item.querySelector('.text-gray-600');
+        
+        if (wordElement && meaningElement) {
+            words.push({
+                en: wordElement.textContent.trim(),
+                cn: meaningElement.textContent.trim()
+            });
+        }
+    });
+    
+    return words;
 }
 
 // 将pronounceWord函数暴露为全局函数，以便HTML中的onclick调用
@@ -1306,6 +1449,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (e) {
             console.error("添加音频初始化事件失败:", e);
         }
+        
+        // 初始化音频信息面板切换功能
+        try {
+            const audioInfoToggle = document.getElementById('audio-info-toggle');
+            const audioInfoPanel = document.getElementById('audio-info-panel');
+            const toggleIcon = audioInfoToggle.querySelector('svg');
+            
+            if (audioInfoToggle && audioInfoPanel) {
+                audioInfoToggle.addEventListener('click', () => {
+                    audioInfoPanel.classList.toggle('hidden');
+                    // 旋转箭头图标
+                    if (audioInfoPanel.classList.contains('hidden')) {
+                        toggleIcon.style.transform = 'rotate(0deg)';
+                        audioInfoToggle.querySelector('span').textContent = '🔊 点击查看音频功能说明';
+                    } else {
+                        toggleIcon.style.transform = 'rotate(180deg)';
+                        audioInfoToggle.querySelector('span').textContent = '🔊 点击隐藏音频功能说明';
+                    }
+                });
+                console.log('音频信息面板切换功能已初始化');
+            }
+        } catch (e) {
+            console.error("初始化音频信息面板切换功能失败:", e);
+        }
 
         // 初始化发音设置事件监听器
         initPronunciationSettings();
@@ -1380,6 +1547,27 @@ function initPronunciationSettings() {
         } else {
             console.error('错误：未找到字符数滑块或显示元素');
         }
+        
+        // 绑定单词数量滑块事件监听器
+        const wordCountSlider = document.getElementById('word-count-slider');
+        if (wordCountSlider) {
+            wordCountSlider.addEventListener('input', (e) => {
+                wordCount = parseInt(e.target.value);
+                document.getElementById('word-count-display').textContent = wordCount;
+                
+                // 如果有选中的分类，重新加载随机单词
+                if (selectedWordList) {
+                    loadRandomWordsForCategory(selectedWordList);
+                }
+            });
+            console.log('单词数量滑块事件监听器已绑定');
+        } else {
+            console.error('错误：未找到单词数量滑块元素');
+        }
+        
+        // 初始化单词数量滑块的显示值和最大值
+        updateMaxWordCount();
+        console.log('单词数量滑块初始化完成');
 
         // 添加用户交互监听器，确保音频可以正常播放
         document.addEventListener('click', () => {
@@ -1440,6 +1628,7 @@ function initExampleTabs() {
         firstExampleTab.classList.remove('hidden');
     }
 } 
+
 
 
 

@@ -14,8 +14,24 @@ app.use(morgan('dev'));                   // 日志记录
 app.use(express.json());                  // 解析JSON请求体
 app.use(express.urlencoded({ extended: true })); // 解析表单数据
 
+// 设置正确的MIME类型
+const mimeTypes = {
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.ogg': 'audio/ogg',
+};
+
 // 静态文件服务
 app.use(express.static(path.join(__dirname, 'public')));
+// 添加音频文件静态服务，并设置正确的MIME类型
+app.use('/data', express.static(path.join(__dirname, 'data'), {
+  setHeaders: (res, filePath) => {
+    const ext = path.extname(filePath).toLowerCase();
+    if (mimeTypes[ext]) {
+      res.setHeader('Content-Type', mimeTypes[ext]);
+    }
+  }
+}));
 
 // API路由
 app.use('/api', require('./routes/api'));

@@ -1367,15 +1367,17 @@ function submitImport() {
 function saveSettings() {
     const geminiApiKey = document.getElementById('gemini-api-key').value.trim();
     const qwenApiKey = document.getElementById('qwen-api-key').value.trim();
+    const deepseekApiKey = document.getElementById('deepseek-api-key').value.trim();
     
-    if (!geminiApiKey && !qwenApiKey) {
+    if (!geminiApiKey && !qwenApiKey && !deepseekApiKey) {
         alert('请至少输入一个API密钥');
         return;
     }
     
     const settingsData = {
         geminiApiKey: geminiApiKey || '',
-        qwenApiKey: qwenApiKey || ''
+        qwenApiKey: qwenApiKey || '',
+        deepseekApiKey: deepseekApiKey || ''
     };
     
     fetch('/api/admin/settings', {

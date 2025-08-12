@@ -545,7 +545,7 @@ router.delete('/words/categories/:id', async (req, res) => {
  * 保存系统设置
  */
 router.post('/admin/settings', async (req, res) => {
-  const { geminiApiKey, qwenApiKey } = req.body;
+  const { geminiApiKey, qwenApiKey, deepseekApiKey } = req.body;
   
   try {
     // 更新 Gemini API 密钥
@@ -561,6 +561,14 @@ router.post('/admin/settings', async (req, res) => {
       await db.run(
         'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
         ['qwen_api_key', qwenApiKey]
+      );
+    }
+    
+    // 更新DeepSeek API 密钥
+    if (deepseekApiKey !== undefined) {
+      await db.run(
+        'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
+        ['deepseek_api_key', deepseekApiKey]
       );
     }
     
@@ -766,12 +774,17 @@ router.post('/generate', async (req, res) => {
       const setting = await db.get('SELECT value FROM settings WHERE key = ?', ['gemini_api_key']);
       apiKey = setting ? setting.value : process.env.GEMINI_API_KEY;
       console.log('使用Gemini API密钥:', apiKey ? `${apiKey.substring(0, 8)}...` : '未配置');
+    } else if (model === 'deepseek') {
+      // 使用DeepSeek-V3模型API密钥
+      const setting = await db.get('SELECT value FROM settings WHERE key = ?', ['deepseek_api_key']);
+      apiKey = setting ? setting.value : process.env.DEEPSEEK_API_KEY || 'sk-osdyhthiavdtkhwpzpocwkqlxhdvwjocopepvrtblgubhzec';
+      console.log('使用DeepSeek API密钥:', apiKey ? `${apiKey.substring(0, 8)}...` : '未配置');
     } else {
       return res.status(400).json({ error: '不支持的模型类型' });
     }
 
     if (!apiKey) {
-      return res.status(500).json({ error: `${model === 'qwen' ? '阿里云千问' : 'Google Gemini'} API密钥未配置` });
+      return res.status(500).json({ error: `${model} API密钥未配置` });
     }
 
     let response;
@@ -861,6 +874,49 @@ router.post('/generate', async (req, res) => {
       } else {
         console.error('Gemini API返回无效响应:', response.data);
         throw new Error('Google Gemini API返回无效响应');
+      }
+    } else if (model === 'deepseek') {
+      // 调用DeepSeek-V3 API
+      console.log('开始调用DeepSeek-V3 API...');
+      const payload = {
+        model: "deepseek-ai/DeepSeek-V3",
+        messages: [{ role: "user", content: prompt }]
+      };
+      
+      if (isJson) {
+        payload.response_format = { type: "json_object" };
+      }
+      
+      try {
+        response = await axios.post(
+          'https://api.siliconflow.cn/v1/chat/completions',
+          payload,
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`
+            },
+            timeout: 60000 // 60秒超时
+          }
+        );
+        console.log('DeepSeek API响应状态:', response.status);
+      } catch (apiError) {
+        console.error('DeepSeek API调用失败:', apiError.message);
+        console.error('错误响应:', apiError.response?.data);
+        
+        return res.status(500).json({
+          error: '调用DeepSeek-V3 API失败',
+          details: apiError.response?.data?.error?.message || apiError.message
+        });
+      }
+
+      // 处理DeepSeek API的响应
+      if (response.data && response.data.choices && response.data.choices[0]?.message?.content) {
+        console.log('DeepSeek API成功返回文本，长度:', response.data.choices[0].message.content.length);
+        return res.json({ text: response.data.choices[0].message.content });
+      } else {
+        console.error('DeepSeek API返回无效响应:', response.data);
+        throw new Error('DeepSeek-V3 API返回无效响应');
       }
     }
   } catch (error) {

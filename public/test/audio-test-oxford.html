@@ -72,6 +72,27 @@
             </div>
         </div>
 
+        <!-- 文件路径检测 -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-xl font-semibold mb-4">文件路径检测</h2>
+            <div class="mb-4">
+                <p class="text-sm text-gray-700 mb-2">此功能可帮助检测音频文件是否可访问</p>
+                <input type="text" id="file-path-input" value="/data/yinpin/hello_gb.mp3" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2">
+                <div class="flex gap-2">
+                    <button onclick="checkFilePath()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        检查文件路径
+                    </button>
+                    <button onclick="openAudioFile()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                        直接打开音频
+                    </button>
+                </div>
+            </div>
+            <div id="file-test-result" class="bg-gray-50 p-3 rounded border text-sm">
+                点击上方按钮测试文件路径...
+            </div>
+        </div>
+
         <!-- 状态显示 -->
         <div class="bg-white p-6 rounded-lg shadow-md">
             <h2 class="text-xl font-semibold mb-4">状态信息</h2>
@@ -92,41 +113,62 @@
         function getLocalAudioPath(word, accent = null) {
             const selectedAccent = accent || testSettings.accent;
             const fileName = `${word.toLowerCase()}_${selectedAccent}.mp3`;
-            return `/data/yinpin/${fileName}`;
+            return `/audio/${fileName}`; // 修改为使用public/audio目录下的音频文件
         }
 
         // 播放本地音频文件
         function playLocalAudio(word, accent = null) {
             return new Promise((resolve, reject) => {
                 const audioPath = getLocalAudioPath(word, accent);
-                const audio = new Audio(audioPath);
+                const audio = new Audio();
                 
                 logStatus(`尝试播放本地音频: ${audioPath}`);
                 
+                // 添加详细的错误处理
+                audio.onerror = (event) => {
+                    const errorDetails = {
+                        code: audio.error ? audio.error.code : 'unknown',
+                        message: audio.error ? audio.error.message : 'unknown',
+                        details: JSON.stringify(event)
+                    };
+                    logStatus(`❌ 本地音频加载失败: ${JSON.stringify(errorDetails)}`);
+                    reject(new Error(`音频加载失败: ${errorDetails.message}`));
+                };
+                
                 audio.onloadeddata = () => {
-                    logStatus(`本地音频加载成功: ${word} (${accent || testSettings.accent})`);
+                    logStatus(`✅ 本地音频加载成功: ${word} (${accent || testSettings.accent})`);
                     audio.play()
                         .then(() => {
-                            logStatus(`本地音频播放成功: ${word} (${accent || testSettings.accent})`);
+                            logStatus(`✅ 本地音频播放成功: ${word} (${accent || testSettings.accent})`);
                             resolve();
                         })
                         .catch(error => {
-                            logStatus(`本地音频播放失败: ${error.message}`);
+                            logStatus(`❌ 本地音频播放失败: ${error.message}`);
                             reject(error);
                         });
                 };
                 
-                audio.onerror = (error) => {
-                    logStatus(`本地音频加载失败: ${error.message || '未知错误'}`);
-                    reject(error);
-                };
+                // 先检查文件是否存在
+                fetch(audioPath, { method: 'HEAD' })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`文件不存在或无法访问 (HTTP ${response.status})`);
+                        }
+                        logStatus(`✅ 文件检查成功: ${audioPath}`);
+                        // 文件存在，设置音频源
+                        audio.src = audioPath;
+                    })
+                    .catch(error => {
+                        logStatus(`❌ 文件检查失败: ${error.message}`);
+                        reject(error);
+                    });
                 
                 // 设置超时
                 setTimeout(() => {
                     if (audio.readyState === 0) {
                         reject(new Error('音频加载超时'));
                     }
-                }, 3000);
+                }, 5000); // 增加超时时间到5秒
             });
         }
 
@@ -157,6 +199,43 @@
             } else {
                 logStatus('请输入要测试的单词');
             }
+        }
+
+        // 文件路径检测函数
+        function checkFilePath() {
+            const filePath = document.getElementById('file-path-input').value.trim();
+            const resultDiv = document.getElementById('file-test-result');
+            
+            resultDiv.innerHTML = `正在检查文件: ${filePath}...`;
+            
+            fetch(filePath, { method: 'HEAD' })
+                .then(response => {
+                    if (response.ok) {
+                        resultDiv.innerHTML = `<span class="text-green-600">✅ 文件存在! HTTP状态: ${response.status}</span>`;
+                        return response.headers;
+                    } else {
+                        resultDiv.innerHTML = `<span class="text-red-600">❌ 文件不存在或无法访问! HTTP状态: ${response.status}</span>`;
+                        throw new Error(`HTTP错误 ${response.status}`);
+                    }
+                })
+                .then(headers => {
+                    // 显示头信息
+                    let headerText = '<div class="mt-2"><strong>响应头信息:</strong><ul>';
+                    headers.forEach((value, key) => {
+                        headerText += `<li>${key}: ${value}</li>`;
+                    });
+                    headerText += '</ul></div>';
+                    resultDiv.innerHTML += headerText;
+                })
+                .catch(error => {
+                    resultDiv.innerHTML += `<div class="text-red-600 mt-2">❌ 错误: ${error.message}</div>`;
+                });
+        }
+
+        // 直接打开音频文件
+        function openAudioFile() {
+            const filePath = document.getElementById('file-path-input').value.trim();
+            window.open(filePath, '_blank');
         }
 
         // 记录状态
