@@ -8,10 +8,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <!-- 新增html2img功能所需的依赖 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
     <!-- 新增Google Fonts支持 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -50,6 +46,7 @@
 <body class="p-4 md:p-8">
     <!-- 音频指示器 -->
     <div id="sound-indicator" class="sound-indicator">🔊</div>
+    
     
     <div class="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
         <!-- Left Control Panel -->
@@ -347,40 +344,7 @@
     </div>
 
     <script src="js/main.js"></script>
-    <script src="js/html2img-integration.js"></script>
 
-    <!-- 调试脚本 -->
-    <script>
-        console.log('=== HTML调试脚本开始 ===');
-        console.log('页面加载时间:', new Date().toLocaleString());
-
-        // 检查关键DOM元素
-        window.addEventListener('load', () => {
-            console.log('=== 页面完全加载完成 ===');
-            console.log('word-list-container:', document.getElementById('word-list-container'));
-            console.log('theme-container:', document.getElementById('theme-container'));
-            console.log('custom-words:', document.getElementById('custom-words'));
-            console.log('generate-btn:', document.getElementById('generate-btn'));
-
-            // 检查main.js是否加载
-            console.log('wordLists变量:', typeof wordLists !== 'undefined' ? wordLists : '未定义');
-            console.log('storyThemes变量:', typeof storyThemes !== 'undefined' ? storyThemes : '未定义');
-
-            // 手动测试API
-            setTimeout(async () => {
-                console.log('=== 手动测试API ===');
-                try {
-                    const response = await fetch('/api/words/categories');
-                    console.log('API响应状态:', response.status, response.statusText);
-                    const data = await response.json();
-                    console.log('API返回数据:', data);
-                    console.log('数据长度:', data.length);
-                } catch (error) {
-                    console.error('API测试失败:', error);
-                }
-            }, 2000);
-        });
-    </script>
 
 
 

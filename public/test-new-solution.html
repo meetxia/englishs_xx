@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新方案测试页面</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-center">新方案测试页面</h1>
+        
+        <!-- 方案说明 -->
+        <div class="bg-white p-6 rounded-lg shadow-lg mb-8">
+            <h2 class="text-xl font-bold mb-4">🚀 新技术方案：页面跳转</h2>
+            <div class="space-y-2 text-gray-700">
+                <p><strong>原问题：</strong>复杂的模态框集成方案不稳定，依赖库加载时序问题导致功能失效</p>
+                <p><strong>新方案：</strong>简化为页面跳转方案，通过URL参数传递数据到html2img.html页面</p>
+                <p><strong>优势：</strong>简单可靠、无依赖冲突、易于调试、用户体验更好</p>
+            </div>
+        </div>
+        
+        <!-- 模拟卡片 -->
+        <div class="bg-white p-6 rounded-lg shadow-lg mb-8">
+            <h2 class="text-xl font-bold mb-4">模拟学习卡片</h2>
+            
+            <!-- 故事模式卡片 -->
+            <div id="story-card" class="border-2 border-blue-300 p-4 rounded-lg mb-4">
+                <div class="card-title text-lg font-bold mb-2 text-blue-600">故事模式：勇敢的冒险</div>
+                <div class="card-content text-gray-700">
+                    <p>小明是一个<strong>brave</strong>(勇敢的)少年，他决定踏上一段<strong>adventure</strong>(冒险)之旅。</p>
+                    <p>在路上，他遇到了许多<strong>challenges</strong>(挑战)，但他从未放弃过自己的<strong>dream</strong>(梦想)。</p>
+                    <p>最终，他<strong>achieved</strong>(实现了)自己的目标，成为了一个真正的<strong>hero</strong>(英雄)。</p>
+                </div>
+                <button onclick="testDownload('story-card', '故事模式卡片.png', 'story')" 
+                        class="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    📥 下载图片
+                </button>
+            </div>
+            
+            <!-- 双语模式卡片 -->
+            <div id="bilingual-card" class="border-2 border-green-300 p-4 rounded-lg mb-4">
+                <div class="card-title text-lg font-bold mb-2 text-green-600">双语模式：日常对话</div>
+                <div class="card-content text-gray-700">
+                    <p><strong>English:</strong> Good morning! How are you today?</p>
+                    <p><strong>中文：</strong> 早上好！你今天怎么样？</p>
+                    <p><strong>English:</strong> I'm fine, thank you. What about you?</p>
+                    <p><strong>中文：</strong> 我很好，谢谢。你呢？</p>
+                </div>
+                <button onclick="testDownload('bilingual-card', '双语模式卡片.png', 'bilingual')" 
+                        class="mt-4 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    📥 下载图片
+                </button>
+            </div>
+            
+            <!-- 词汇模式卡片 -->
+            <div id="vocab-card" class="border-2 border-purple-300 p-4 rounded-lg mb-4">
+                <div class="card-title text-lg font-bold mb-2 text-purple-600">词汇模式：重点单词</div>
+                <div class="card-content text-gray-700">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><strong>important</strong> - 重要的</div>
+                        <div><strong>necessary</strong> - 必要的</div>
+                        <div><strong>essential</strong> - 基本的</div>
+                        <div><strong>significant</strong> - 重大的</div>
+                    </div>
+                </div>
+                <button onclick="testDownload('vocab-card', '词汇模式卡片.png', 'vocab')" 
+                        class="mt-4 bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                    📥 下载图片
+                </button>
+            </div>
+        </div>
+        
+        <!-- 测试结果 -->
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-xl font-bold mb-4">测试结果</h2>
+            <div id="test-log" class="bg-gray-100 p-4 rounded text-sm font-mono max-h-64 overflow-y-auto">
+                点击上方的"下载图片"按钮开始测试...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logElement = document.getElementById('test-log');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.innerHTML += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        function testDownload(elementId, filename, mode) {
+            log(`开始测试下载: ${elementId}, ${filename}, ${mode}`);
+            
+            // 获取卡片内容
+            const cardElement = document.getElementById(elementId);
+            if (!cardElement) {
+                log(`❌ 错误: 找不到元素 ${elementId}`);
+                return;
+            }
+
+            // 提取数据
+            const titleElement = cardElement.querySelector('.card-title');
+            const contentElement = cardElement.querySelector('.card-content');
+            
+            const title = titleElement ? titleElement.textContent.trim() : filename.replace('.png', '');
+            const content = contentElement ? contentElement.textContent.trim() : cardElement.textContent.trim();
+            
+            log(`✅ 提取数据成功: 标题="${title}", 内容长度=${content.length}字符`);
+            
+            // 构造URL参数
+            const params = new URLSearchParams({
+                title: title,
+                content: content,
+                mode: mode,
+                filename: filename
+            });
+
+            const url = `html2img.html?${params.toString()}`;
+            log(`🔗 构造URL: ${url.substring(0, 100)}...`);
+            
+            // 跳转到html2img.html页面
+            log(`🚀 在新标签页中打开图片编辑器...`);
+            window.open(url, '_blank');
+            
+            log(`✅ 测试完成！请检查新打开的标签页是否正确显示了卡片内容。`);
+            log(`---`);
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            log('📄 测试页面加载完成');
+            log('💡 提示：点击任意卡片的"下载图片"按钮测试新方案');
+            log('🎯 预期结果：应该在新标签页中打开html2img.html，并自动填充卡片数据');
+            log('---');
+        });
+    </script>
+</body>
+</html>

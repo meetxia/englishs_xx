@@ -953,9 +953,50 @@
                 }
             });
 
+            // --- URL参数解析和自动填充 ---
+            function loadFromURLParams() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const title = urlParams.get('title');
+                const content = urlParams.get('content');
+                const mode = urlParams.get('mode');
+                const filename = urlParams.get('filename');
+
+                console.log('URL参数:', { title, content, mode, filename });
+
+                if (title || content) {
+                    // 如果有URL参数，使用参数数据
+                    const pageData = {
+                        title: title || '无标题',
+                        content: content || '',
+                        fontSize: state.settings.fontSize
+                    };
+
+                    // 替换第一页的数据
+                    state.pages[0] = pageData;
+                    state.currentPageIndex = 0;
+
+                    // 更新输入框
+                    titleInput.value = pageData.title;
+                    contentTextarea.value = pageData.content;
+
+                    // 显示成功消息
+                    showSuccessMessage(`已加载卡片数据: ${pageData.title}`);
+
+                    // 自动生成预览
+                    setTimeout(() => {
+                        generatePreviewBtn.click();
+                    }, 500);
+
+                    console.log('已从URL参数加载数据');
+                }
+            }
+
             // --- 初始化 ---
             setupListeners();
             renderApp();
+
+            // 加载URL参数（在页面渲染完成后）
+            setTimeout(loadFromURLParams, 100);
         });
     </script>
 </body>

@@ -1037,16 +1037,9 @@ function renderCards(story, wordsWithDetails) {
     });
 }
 
-// 修改downloadCard函数 - 使用新的html2img集成功能
+// 新方案：直接跳转到html2img.html页面
 function downloadCard(elementId, filename, mode) {
     console.log('准备下载卡片:', elementId, filename, mode);
-
-    // 检查html2img集成是否可用
-    if (!window.html2imgIntegration) {
-        console.error('HTML2IMG集成模块未加载，使用传统下载方式');
-        downloadCardLegacy(elementId, filename, mode);
-        return;
-    }
 
     // 获取卡片内容
     const cardElement = document.getElementById(elementId);
@@ -1055,11 +1048,66 @@ function downloadCard(elementId, filename, mode) {
         return;
     }
 
-    // 使用集成模块的提取函数
-    const cardData = window.html2imgIntegration.extractCardData(cardElement, mode, filename);
+    console.log('开始提取卡片数据...');
 
-    // 使用新的html2img集成功能打开模态框
-    window.html2imgIntegration.openModal(cardData);
+    // 提取卡片数据
+    let cardData;
+    try {
+        // 提取标题
+        let title = '';
+        const titleElement = cardElement.querySelector('.card-title, h3, h2, h1, .title');
+        if (titleElement) {
+            title = titleElement.textContent.trim();
+        } else {
+            title = filename.replace('.png', '');
+        }
+
+        // 提取内容
+        let content = '';
+        const contentElement = cardElement.querySelector('.card-content, .content, .text-content');
+        if (contentElement) {
+            content = contentElement.textContent.trim();
+        } else {
+            // 如果没有找到特定的内容元素，提取整个卡片的文本内容
+            content = cardElement.textContent.trim();
+            // 移除标题部分
+            if (title) {
+                content = content.replace(title, '').trim();
+            }
+        }
+
+        cardData = {
+            title: title,
+            content: content,
+            mode: mode,
+            filename: filename
+        };
+    } catch (error) {
+        console.error('提取卡片数据失败:', error);
+        cardData = {
+            title: filename.replace('.png', ''),
+            content: cardElement.textContent || '',
+            mode: mode,
+            filename: filename
+        };
+    }
+
+    console.log('卡片数据:', cardData);
+
+    // 构造URL参数
+    const params = new URLSearchParams({
+        title: cardData.title,
+        content: cardData.content,
+        mode: cardData.mode,
+        filename: cardData.filename
+    });
+
+    // 跳转到html2img.html页面
+    const url = `html2img.html?${params.toString()}`;
+    console.log('跳转到:', url);
+
+    // 在新标签页中打开
+    window.open(url, '_blank');
 }
 
 // 保留原始下载函数作为备用
@@ -1575,7 +1623,48 @@ function initExampleTabs() {
         firstExampleTab.classList.add('active');
         firstExampleTab.classList.remove('hidden');
     }
-} 
+}
+
+// 显示加载提示
+function showLoadingToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center';
+    toast.innerHTML = `
+        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+        ${message}
+    `;
+    document.body.appendChild(toast);
+    return toast;
+}
+
+// 隐藏加载提示
+function hideLoadingToast(toast) {
+    if (toast && toast.parentNode) {
+        toast.parentNode.removeChild(toast);
+    }
+}
+
+// 显示错误消息
+function showErrorMessage(message) {
+    const toast = document.createElement('div');
+    toast.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center';
+    toast.innerHTML = `
+        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+        </svg>
+        ${message}
+    `;
+    document.body.appendChild(toast);
+
+    // 5秒后自动消失
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 5000);
+
+    return toast;
+}
 
 
 

@@ -1,6 +1,8 @@
 // HTML2IMG 集成模块 - 将html2img功能集成到主项目中
 class HTML2IMGIntegration {
     constructor() {
+        console.log('🔧 html2imgIntegration: 初始化HTML2IMG集成类...');
+        
         this.currentSettings = {
             template: 'template-modern',
             fontFamily: 'font-noto-sans',
@@ -19,39 +21,116 @@ class HTML2IMGIntegration {
         this.currentCardData = null;
         this.previewElement = null;
         this.modalInitialized = false;
+        this.initRetries = 0;
+        this.maxRetries = 5;
 
-        // 延迟初始化模态框，确保DOM已加载
+        // 延迟初始化模态框，确保DOM和所有依赖都已加载
+        this.startInitialization();
+    }
+
+    startInitialization() {
+        const initDelay = Math.min(500 + (this.initRetries * 1000), 10000); // 递增延迟，最大10秒
+        
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => this.initializeModal());
+            document.addEventListener('DOMContentLoaded', () => {
+                setTimeout(() => this.initializeModal(), initDelay);
+            });
         } else {
-            this.initializeModal();
+            setTimeout(() => this.initializeModal(), initDelay);
         }
     }
 
     // 初始化模态框
     initializeModal() {
-        if (this.modalInitialized) return;
+        if (this.modalInitialized) {
+            console.log('✅ html2imgIntegration: 模态框已经初始化过了');
+            return true;
+        }
 
         try {
-            console.log('开始初始化HTML2IMG模态框...');
+            console.log('🔧 html2imgIntegration: 开始初始化HTML2IMG模态框...');
+
+            // 检查必要的依赖
+            const missingDeps = [];
+            if (!window.html2canvas) {
+                missingDeps.push('html2canvas');
+            }
+            if (!window.JSZip) {
+                missingDeps.push('JSZip');
+            }
+            if (!window.marked) {
+                missingDeps.push('marked');
+            }
+            if (!window.DOMPurify) {
+                missingDeps.push('DOMPurify');
+            }
+
+            if (missingDeps.length > 0) {
+                this.initRetries++;
+                console.warn(`⚠️  html2imgIntegration: 以下依赖库未加载: ${missingDeps.join(', ')} (重试 ${this.initRetries}/${this.maxRetries})`);
+                
+                if (this.initRetries < this.maxRetries) {
+                    console.log(`🔄 html2imgIntegration: ${3 + this.initRetries}秒后重试初始化...`);
+                    setTimeout(() => this.initializeModal(), (3 + this.initRetries) * 1000);
+                } else {
+                    console.error('❌ html2imgIntegration: 达到最大重试次数，初始化失败');
+                    window.dispatchEvent(new CustomEvent('html2imgIntegrationFailed', {
+                        detail: { error: '依赖库加载失败', missingDeps }
+                    }));
+                }
+                return false;
+            }
 
             // 检查模态框是否已存在，如果存在则移除旧的
             const existingModal = document.getElementById('html2img-modal');
             if (existingModal) {
+                console.log('🗑️  html2imgIntegration: 移除已存在的模态框');
                 existingModal.remove();
             }
 
             // 创建新的模态框HTML
+            console.log('🏗️  html2imgIntegration: 创建模态框HTML...');
             const modalHTML = this.createModalHTML();
+            if (!modalHTML) {
+                throw new Error('创建模态框HTML失败');
+            }
+
+            console.log('📝 html2imgIntegration: 插入模态框HTML到页面...');
             document.body.insertAdjacentHTML('beforeend', modalHTML);
 
+            // 验证模态框是否成功创建
+            const modal = document.getElementById('html2img-modal');
+            if (!modal) {
+                throw new Error('模态框元素创建失败');
+            }
+
             // 绑定事件监听器
+            console.log('🔗 html2imgIntegration: 绑定事件监听器...');
             this.bindEventListeners();
 
             this.modalInitialized = true;
-            console.log('HTML2IMG模态框初始化完成');
+            console.log('✅ html2imgIntegration: HTML2IMG模态框初始化完成');
+
+            // 通知页面初始化成功
+            window.dispatchEvent(new CustomEvent('html2imgIntegrationReady', {
+                detail: { integration: this }
+            }));
+
+            return true;
+
         } catch (error) {
-            console.error('初始化模态框失败:', error);
+            console.error('❌ html2imgIntegration: 初始化模态框失败:', error);
+            this.initRetries++;
+            if (this.initRetries < this.maxRetries) {
+                console.log(`🔄 html2imgIntegration: 10秒后重试初始化... (${this.initRetries}/${this.maxRetries})`);
+                setTimeout(() => this.initializeModal(), 10000);
+            } else {
+                console.error('❌ html2imgIntegration: 达到最大重试次数，初始化彻底失败');
+                window.dispatchEvent(new CustomEvent('html2imgIntegrationFailed', {
+                    detail: { error: error.message }
+                }));
+            }
+            return false;
         }
     }
 
@@ -408,59 +487,114 @@ class HTML2IMGIntegration {
             filename: filename
         };
     }
-}
+    }
 
     // 打开模态框 - 支持单个卡片或全部卡片
     openModal(cardData) {
         console.log('尝试打开模态框，卡片数据:', cardData);
 
-        // 确保模态框已初始化
-        if (!this.modalInitialized) {
-            console.log('模态框未初始化，正在初始化...');
-            this.initializeModal();
-        }
+        try {
+            // 确保模态框已初始化
+            if (!this.modalInitialized) {
+                console.log('模态框未初始化，正在初始化...');
+                const initSuccess = this.initializeModal();
 
-        // 如果传入的是单个卡片数据，则提取所有卡片数据
-        if (cardData && !cardData.cards) {
-            // 单个卡片模式，提取所有卡片数据
-            this.allCardsData = this.extractAllCardData();
+                // 如果初始化失败，等待一段时间后重试
+                if (!initSuccess && !this.modalInitialized) {
+                    console.log('模态框初始化失败，等待重试...');
+                    // 等待初始化完成的事件
+                    return new Promise((resolve, reject) => {
+                        const onReady = () => {
+                            window.removeEventListener('html2imgIntegrationReady', onReady);
+                            window.removeEventListener('html2imgIntegrationFailed', onFailed);
+                            console.log('模态框初始化成功，重新尝试打开');
+                            this.openModal(cardData);
+                            resolve();
+                        };
 
-            // 找到当前卡片在所有卡片中的索引
-            this.currentCardIndex = 0;
-            if (cardData.mode) {
-                const modeMap = { 'story': 0, 'bilingual': 1, 'vocab': 2, 'test': 3 };
-                this.currentCardIndex = modeMap[cardData.mode] || 0;
+                        const onFailed = () => {
+                            window.removeEventListener('html2imgIntegrationReady', onReady);
+                            window.removeEventListener('html2imgIntegrationFailed', onFailed);
+                            reject(new Error('模态框初始化失败'));
+                        };
+
+                        window.addEventListener('html2imgIntegrationReady', onReady);
+                        window.addEventListener('html2imgIntegrationFailed', onFailed);
+
+                        // 10秒超时
+                        setTimeout(() => {
+                            window.removeEventListener('html2imgIntegrationReady', onReady);
+                            window.removeEventListener('html2imgIntegrationFailed', onFailed);
+                            reject(new Error('模态框初始化超时'));
+                        }, 10000);
+                    });
+                }
             }
 
-            this.currentCardData = this.allCardsData.cards[this.currentCardIndex] || cardData;
-        } else if (cardData && cardData.cards) {
-            // 全部卡片模式
-            this.allCardsData = cardData;
-            this.currentCardIndex = 0;
-            this.currentCardData = cardData.cards[0];
-        } else {
-            // 默认提取所有卡片
-            this.allCardsData = this.extractAllCardData();
-            this.currentCardIndex = 0;
-            this.currentCardData = this.allCardsData.cards[0];
-        }
+            // 如果传入的是单个卡片数据，则提取所有卡片数据
+            if (cardData && !cardData.cards) {
+                // 单个卡片模式，提取所有卡片数据
+                console.log('提取所有卡片数据...');
+                this.allCardsData = this.extractAllCardData();
 
-        this.isModalOpen = true;
+                // 找到当前卡片在所有卡片中的索引
+                this.currentCardIndex = 0;
+                if (cardData.mode) {
+                    const modeMap = { 'story': 0, 'bilingual': 1, 'vocab': 2, 'test': 3 };
+                    this.currentCardIndex = modeMap[cardData.mode] || 0;
+                }
 
-        const modal = document.getElementById('html2img-modal');
-        if (modal) {
-            console.log('显示模态框');
-            modal.classList.remove('hidden');
+                this.currentCardData = this.allCardsData.cards[this.currentCardIndex] || cardData;
+            } else if (cardData && cardData.cards) {
+                // 全部卡片模式
+                this.allCardsData = cardData;
+                this.currentCardIndex = 0;
+                this.currentCardData = cardData.cards[0];
+            } else {
+                // 默认提取所有卡片
+                console.log('使用默认卡片数据...');
+                this.allCardsData = this.extractAllCardData();
+                this.currentCardIndex = 0;
+                this.currentCardData = this.allCardsData.cards[0];
+            }
 
-            // 延迟更新，确保模态框完全显示
-            setTimeout(() => {
-                this.initializeModalContent();
-                this.updateEditorContent();
-                this.updatePreview();
-                this.updateCardIndicator();
-            }, 100);
-        } else {
-            console.error('找不到模态框元素');
+            console.log('当前卡片数据:', this.currentCardData);
+
+            this.isModalOpen = true;
+
+            const modal = document.getElementById('html2img-modal');
+            if (modal) {
+                console.log('显示模态框');
+                modal.classList.remove('hidden');
+
+                // 强制显示模态框，确保它在最顶层
+                modal.style.display = 'flex';
+                modal.style.zIndex = '99999';
+
+                console.log('模态框样式设置完成:', {
+                    display: modal.style.display,
+                    zIndex: modal.style.zIndex,
+                    classList: modal.className
+                });
+
+                // 延迟更新，确保模态框完全显示
+                setTimeout(() => {
+                    try {
+                        this.initializeModalContent();
+                        this.updateEditorContent();
+                        this.updatePreview();
+                        this.updateCardIndicator();
+                        console.log('模态框内容更新完成');
+                    } catch (error) {
+                        console.error('更新模态框内容失败:', error);
+                    }
+                }, 100);
+            } else {
+                throw new Error('找不到模态框元素');
+            }
+        } catch (error) {
+            console.error('打开模态框失败:', error);
+            alert('打开图片编辑器失败: ' + error.message);
         }
     }
 
@@ -502,6 +636,7 @@ class HTML2IMGIntegration {
         const modal = document.getElementById('html2img-modal');
         if (modal) {
             modal.classList.add('hidden');
+            modal.style.display = 'none';
         }
     }
 
@@ -1076,25 +1211,50 @@ class HTML2IMGIntegration {
     }
 }
 
-// 创建全局实例
-window.html2imgIntegration = new HTML2IMGIntegration();
+// 创建全局实例 - 确保实例存在
+console.log('📁 html2img-integration.js: 脚本已加载，HTML2IMGIntegration 类已定义');
+
+// 如果还没有实例，创建一个
+if (!window.html2imgIntegration) {
+    console.log('🔧 html2img-integration.js: 创建HTML2IMGIntegration实例');
+    window.html2imgIntegration = new HTML2IMGIntegration();
+}
 
 // 页面加载完成后添加样式和测试功能
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('📄 html2imgIntegration: DOM内容已加载');
+    
+    // 添加样式
     window.html2imgIntegration.addStyles();
 
-    // 添加测试函数
-    window.testHTML2IMGIntegration = function() {
-        const testData = {
-            title: '测试卡片',
-            content: '这是一个测试内容，用来验证HTML2IMG集成功能是否正常工作。',
-            mode: 'story',
-            filename: '测试卡片.png'
+    // 监听模块就绪事件
+    window.addEventListener('html2imgIntegrationReady', (event) => {
+        console.log('🎉 html2imgIntegration: 模块已准备就绪');
+        
+        // 添加测试函数
+        window.testHTML2IMGIntegration = function() {
+            const testData = {
+                title: '测试卡片',
+                content: '这是一个测试内容，用来验证HTML2IMG集成功能是否正常工作。',
+                mode: 'story',
+                filename: '测试卡片.png'
+            };
+
+            console.log('🧪 html2imgIntegration: 开始测试HTML2IMG集成功能...');
+            window.html2imgIntegration.openModal(testData);
         };
+        
+        console.log('✅ html2imgIntegration: 测试功能已加载');
+    });
 
-        console.log('开始测试HTML2IMG集成功能...');
-        window.html2imgIntegration.openModal(testData);
-    };
-
-    console.log('HTML2IMG集成模块已加载完成');
+    // 检查初始化状态
+    setTimeout(() => {
+        if (window.html2imgIntegration && window.html2imgIntegration.modalInitialized) {
+            console.log('✅ html2imgIntegration: 已加载');
+        } else {
+            console.log('⚠️  html2imgIntegration: 未完全加载，请等待...');
+        }
+    }, 1000);
+    
+    console.log('📊 html2imgIntegration: 集成模块脚本已执行');
 });

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>下载功能测试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@400;700&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-center mb-8">下载功能测试页面</h1>
+        
+        <!-- 测试卡片 -->
+        <div id="test-card" class="card bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="card-title text-2xl font-bold mb-4 text-blue-600">模式一：爽文带背</h2>
+            <div class="card-content text-gray-800 leading-relaxed">
+                清晨，是通报 <span class="text-red-500 font-bold">grandparents</span> 亲手做的 <span class="text-red-500 font-bold">breakfast</span>，一边 <span class="text-red-500 font-bold">sing</span> 着歌—边漫步在 <span class="text-red-500 font-bold">city</span> 的 <span class="text-red-500 font-bold">sidewalk</span> 上。忽然一只灿烂的 <span class="text-red-500 font-bold">butterfly</span> 撞到她身边，她惊呼一声，脚下踩到 <span class="text-red-500 font-bold">under</span> 积水坑的香蕉皮，早餐盒飞出去砸中了公园里的一棵树！
+            </div>
+            <button onclick="testDownloadCard()" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                下载图片
+            </button>
+        </div>
+
+        <!-- 依赖检查 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h3 class="text-xl font-bold mb-4">依赖检查</h3>
+            <div id="dependency-status" class="space-y-2"></div>
+            <button onclick="checkDependencies()" class="mt-4 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                重新检查依赖
+            </button>
+        </div>
+
+        <!-- 控制台输出 -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h3 class="text-xl font-bold mb-4">控制台输出</h3>
+            <div id="console-output" class="bg-gray-100 p-4 rounded text-sm font-mono h-64 overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <!-- 引入脚本 -->
+    <script src="js/html2img-integration.js"></script>
+
+    <script>
+        // 重写console.log来显示在页面上
+        const originalLog = console.log;
+        const originalError = console.error;
+        const consoleOutput = document.getElementById('console-output');
+
+        function addToConsole(message, type = 'log') {
+            const div = document.createElement('div');
+            div.className = type === 'error' ? 'text-red-600' : 'text-gray-800';
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            consoleOutput.appendChild(div);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToConsole(args.join(' '), 'log');
+        };
+
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToConsole(args.join(' '), 'error');
+        };
+
+        // 检查依赖函数
+        function checkDependencies() {
+            const dependencies = [
+                { name: 'html2canvas', obj: window.html2canvas },
+                { name: 'JSZip', obj: window.JSZip },
+                { name: 'marked', obj: window.marked },
+                { name: 'DOMPurify', obj: window.DOMPurify },
+                { name: 'html2imgIntegration', obj: window.html2imgIntegration }
+            ];
+
+            const statusDiv = document.getElementById('dependency-status');
+            statusDiv.innerHTML = '';
+
+            dependencies.forEach(dep => {
+                const div = document.createElement('div');
+                const status = dep.obj ? '✅ 已加载' : '❌ 未加载';
+                const color = dep.obj ? 'text-green-600' : 'text-red-600';
+                div.className = color;
+                div.textContent = `${dep.name}: ${status}`;
+                statusDiv.appendChild(div);
+            });
+
+            console.log('依赖检查完成');
+        }
+
+        // 测试下载函数
+        function testDownloadCard() {
+            console.log('开始测试下载功能...');
+            
+            if (!window.html2imgIntegration) {
+                console.error('html2imgIntegration 未加载');
+                return;
+            }
+
+            const testData = {
+                title: '测试卡片',
+                content: '这是一个测试内容，用来验证HTML2IMG集成功能是否正常工作。包含一些 **粗体** 和 *斜体* 文本。',
+                mode: 'story',
+                filename: '测试卡片.png'
+            };
+
+            try {
+                window.html2imgIntegration.openModal(testData);
+            } catch (error) {
+                console.error('打开模态框失败:', error);
+            }
+        }
+
+        // 页面加载完成后检查依赖
+        window.addEventListener('load', () => {
+            console.log('页面加载完成');
+            setTimeout(() => {
+                checkDependencies();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

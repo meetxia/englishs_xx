@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片下载功能调试页面</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+    <script src="js/canvas-renderer.js"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-center">图片下载功能调试页面</h1>
+        
+        <!-- 状态显示区域 -->
+        <div class="bg-white p-6 rounded-lg shadow-lg mb-8">
+            <h2 class="text-xl font-bold mb-4">系统状态</h2>
+            <div id="status-display" class="space-y-2">
+                <div>页面加载中...</div>
+            </div>
+        </div>
+        
+        <!-- 测试卡片 -->
+        <div class="bg-white p-6 rounded-lg shadow-lg mb-8">
+            <h2 class="text-xl font-bold mb-4">测试卡片</h2>
+            <div id="test-card" class="border-2 border-gray-300 p-4 rounded-lg">
+                <div class="card-title text-lg font-bold mb-2">测试单词：example</div>
+                <div class="card-content">
+                    <p>这是一个测试卡片，用于验证图片下载功能是否正常工作。</p>
+                    <p><strong>Example:</strong> This is an example sentence.</p>
+                    <p><strong>中文:</strong> 这是一个例句。</p>
+                </div>
+            </div>
+            <div class="mt-4 space-x-2">
+                <button id="test-download-btn" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    测试下载图片
+                </button>
+                <button id="test-modal-btn" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                    直接测试模态框
+                </button>
+            </div>
+        </div>
+        
+        <!-- 调试信息 -->
+        <div class="bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-xl font-bold mb-4">调试信息</h2>
+            <div id="debug-log" class="bg-gray-100 p-4 rounded text-sm font-mono max-h-96 overflow-y-auto">
+                调试日志将在这里显示...
+            </div>
+            <div class="mt-4 space-x-2">
+                <button id="check-status-btn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    检查状态
+                </button>
+                <button id="force-init-btn" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
+                    强制初始化
+                </button>
+                <button id="clear-log-btn" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                    清空日志
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载脚本 -->
+    <script src="js/main.js"></script>
+    <script src="js/html2img-integration.js"></script>
+    <script src="js/simple-card-downloader.js"></script>
+    <script src="js/html2img-bootstrap.js"></script>
+
+    <script>
+        // 调试日志函数
+        function debugLog(message, type = 'info') {
+            const logElement = document.getElementById('debug-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const typeColors = {
+                'info': 'text-blue-600',
+                'success': 'text-green-600',
+                'warning': 'text-orange-600',
+                'error': 'text-red-600'
+            };
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = typeColors[type] || 'text-gray-600';
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            // 同时输出到控制台
+            console.log(`[DEBUG] ${message}`);
+        }
+
+        // 更新状态显示
+        function updateStatus() {
+            const statusElement = document.getElementById('status-display');
+            const status = {
+                html2canvas: typeof window.html2canvas !== 'undefined',
+                JSZip: typeof window.JSZip !== 'undefined',
+                marked: typeof window.marked !== 'undefined',
+                DOMPurify: typeof window.DOMPurify !== 'undefined',
+                html2imgIntegration: typeof window.html2imgIntegration !== 'undefined',
+                modalInitialized: window.html2imgIntegration && window.html2imgIntegration.modalInitialized,
+                bootstrap: window.HTML2IMGBootstrap && window.HTML2IMGBootstrap.loaded
+            };
+            
+            statusElement.innerHTML = Object.entries(status).map(([key, value]) => {
+                const color = value ? 'text-green-600' : 'text-red-600';
+                const icon = value ? '✅' : '❌';
+                return `<div class="${color}">${icon} ${key}: ${value}</div>`;
+            }).join('');
+            
+            return status;
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            debugLog('页面DOM加载完成', 'info');
+
+            // 定期更新状态
+            setInterval(updateStatus, 1000);
+
+            // 绑定按钮事件
+            document.getElementById('test-download-btn').addEventListener('click', () => {
+                debugLog('点击测试下载按钮', 'info');
+                try {
+                    // 先检查函数是否存在
+                    if (typeof downloadCard === 'undefined') {
+                        debugLog('downloadCard 函数未定义', 'error');
+                        return;
+                    }
+
+                    // 检查html2imgIntegration是否存在
+                    if (!window.html2imgIntegration) {
+                        debugLog('html2imgIntegration 实例不存在', 'error');
+                        return;
+                    }
+
+                    // 检查模态框是否已初始化
+                    if (!window.html2imgIntegration.modalInitialized) {
+                        debugLog('模态框未初始化', 'warning');
+                        // 尝试强制初始化
+                        if (window.forceHTML2IMGInit) {
+                            debugLog('尝试强制初始化', 'info');
+                            window.forceHTML2IMGInit();
+                            // 延迟重试
+                            setTimeout(() => {
+                                if (window.html2imgIntegration && window.html2imgIntegration.modalInitialized) {
+                                    debugLog('强制初始化成功，重新尝试下载', 'success');
+                                    downloadCard('test-card', '测试卡片.png', 'story');
+                                } else {
+                                    debugLog('强制初始化失败', 'error');
+                                }
+                            }, 3000);
+                            return;
+                        }
+                    }
+
+                    downloadCard('test-card', '测试卡片.png', 'story');
+                } catch (error) {
+                    debugLog(`下载失败: ${error.message}`, 'error');
+                    debugLog(`错误堆栈: ${error.stack}`, 'error');
+                }
+            });
+            
+            document.getElementById('check-status-btn').addEventListener('click', () => {
+                const status = updateStatus();
+                debugLog(`状态检查完成: ${JSON.stringify(status)}`, 'info');
+                
+                if (window.checkHTML2IMGStatus) {
+                    const detailedStatus = window.checkHTML2IMGStatus();
+                    debugLog(`详细状态: ${JSON.stringify(detailedStatus)}`, 'info');
+                }
+            });
+            
+            document.getElementById('force-init-btn').addEventListener('click', () => {
+                debugLog('强制重新初始化', 'warning');
+                if (window.forceHTML2IMGInit) {
+                    window.forceHTML2IMGInit();
+                } else {
+                    debugLog('forceHTML2IMGInit 函数不存在', 'error');
+                }
+            });
+            
+            document.getElementById('clear-log-btn').addEventListener('click', () => {
+                document.getElementById('debug-log').innerHTML = '';
+            });
+
+            document.getElementById('test-modal-btn').addEventListener('click', () => {
+                debugLog('点击直接测试模态框按钮', 'info');
+                try {
+                    if (!window.html2imgIntegration) {
+                        debugLog('html2imgIntegration 实例不存在', 'error');
+                        return;
+                    }
+
+                    const testData = {
+                        title: '测试卡片标题',
+                        content: '这是测试内容，用于验证模态框是否能正确显示。\n\n包含多行文本和**粗体**格式。',
+                        mode: 'story',
+                        filename: '测试卡片.png'
+                    };
+
+                    debugLog('尝试直接打开模态框', 'info');
+                    window.html2imgIntegration.openModal(testData);
+
+                    // 检查模态框是否显示
+                    setTimeout(() => {
+                        const modal = document.getElementById('html2img-modal');
+                        if (modal) {
+                            const isVisible = !modal.classList.contains('hidden');
+                            debugLog(`模态框存在: true, 可见: ${isVisible}`, isVisible ? 'success' : 'warning');
+                            if (!isVisible) {
+                                debugLog('模态框存在但不可见，检查CSS类', 'warning');
+                                debugLog(`模态框类列表: ${modal.className}`, 'info');
+                            }
+                        } else {
+                            debugLog('模态框元素不存在', 'error');
+                        }
+                    }, 500);
+
+                } catch (error) {
+                    debugLog(`直接测试模态框失败: ${error.message}`, 'error');
+                    debugLog(`错误堆栈: ${error.stack}`, 'error');
+                }
+            });
+        });
+
+        // 监听相关事件
+        window.addEventListener('html2imgIntegrationReady', () => {
+            debugLog('html2imgIntegration 模块就绪', 'success');
+        });
+        
+        window.addEventListener('html2imgBootstrapSuccess', () => {
+            debugLog('html2img bootstrap 成功', 'success');
+        });
+        
+        window.addEventListener('html2imgIntegrationFailed', (event) => {
+            debugLog(`html2img 集成失败: ${event.detail.error}`, 'error');
+        });
+    </script>
+</body>
+</html>
