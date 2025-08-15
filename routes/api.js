@@ -928,4 +928,56 @@ router.post('/generate', async (req, res) => {
   }
 });
 
+/**
+ * 生成高质量卡片图片/PDF - 新技术方案
+ */
+router.post('/generate-card', async (req, res) => {
+  console.log('🎨 收到卡片生成请求');
+  const { htmlContent, options } = req.body;
+
+  // 参数验证
+  if (!htmlContent || !options) {
+    return res.status(400).json({ 
+      error: '缺少必要参数',
+      details: 'htmlContent 和 options 参数是必需的'
+    });
+  }
+
+  try {
+    // 动态导入卡片生成器（避免启动时立即加载 Puppeteer）
+    const cardGenerator = require('../services/cardGenerator');
+    
+    console.log('📋 生成选项:', {
+      output: options.output,
+      width: options.width,
+      height: options.height,
+      format: options.format,
+      preview: options.preview
+    });
+
+    // 生成文件
+    const buffer = await cardGenerator.generateOutput(htmlContent, options);
+    
+    // 设置响应头
+    if (options.output === 'pdf') {
+      res.contentType('application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${options.filename || 'card'}.pdf"`);
+    } else {
+      res.contentType('image/png');
+      res.setHeader('Content-Disposition', `attachment; filename="${options.filename || 'card'}.png"`);
+    }
+
+    // 发送文件
+    res.send(buffer);
+    console.log('✅ 卡片生成成功并已发送');
+
+  } catch (error) {
+    console.error('❌ 卡片生成失败:', error);
+    res.status(500).json({ 
+      error: '卡片生成失败', 
+      details: error.message 
+    });
+  }
+});
+
 module.exports = router; 

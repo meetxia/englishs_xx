@@ -139,20 +139,14 @@
                     <input id="char-count" type="range" min="200" max="1000" value="300" step="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
                 </div>
                 <div>
-                    <h3>6. 选择AI模型</h3>
+                    <h3>6. AI模型</h3>
                     <div class="flex flex-col gap-2 mt-2">
+                        <!-- 仅显示DeepSeek-V3，设为默认选中 -->
                         <label class="inline-flex items-center">
-                            <input type="radio" name="ai-model" value="qwen" class="form-radio text-red-500" checked>
-                            <span class="ml-2">阿里云千问</span>
+                            <input type="radio" name="ai-model" value="deepseek" class="form-radio text-purple-500" checked>
+                            <span class="ml-2 font-medium text-purple-700">DeepSeek-V3 (推荐)</span>
                         </label>
-                        <label class="inline-flex items-center">
-                            <input type="radio" name="ai-model" value="gemini" class="form-radio text-blue-500">
-                            <span class="ml-2">Google Gemini</span>
-                        </label>
-                        <label class="inline-flex items-center">
-                            <input type="radio" name="ai-model" value="deepseek" class="form-radio text-purple-500">
-                            <span class="ml-2">DeepSeek-V3</span>
-                        </label>
+                        <p class="text-sm text-gray-500 mt-1">使用最新的DeepSeek-V3模型，提供高质量的故事生成</p>
                     </div>
                 </div>
                 <button id="generate-btn" class="sticky-generate-btn w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 ease-in-out flex items-center justify-center text-lg">
@@ -298,7 +292,12 @@
                                 <h2 class="text-2xl font-bold text-red-500 mb-6 text-center">模式一：爽文带背</h2>
                                 <p id="story-output" class="text-gray-700 leading-relaxed text-base"></p>
                             </div>
-                            <button onclick="downloadCard('card1-content', '爽文带背.png', 'story')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-900 transition-colors">下载图片</button>
+                            <button onclick="openAdvancedDownloadModal({elementId: 'card1-content', filename: '爽文带背', mode: 'story'})" class="mt-4 w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-3 px-4 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300 flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                </svg>
+                                专业版下载
+                            </button>
                         </div>
                     </div>
                     
@@ -309,7 +308,12 @@
                                 <h2 class="text-2xl font-bold text-blue-500 mb-6 text-center">模式二：中英对照</h2>
                                 <p id="study-output" class="text-gray-700 leading-relaxed text-base"></p>
                             </div>
-                            <button onclick="downloadCard('card2-content', '中英对照.png', 'bilingual')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-900 transition-colors">下载图片</button>
+                            <button onclick="openAdvancedDownloadModal({elementId: 'card2-content', filename: '中英对照', mode: 'bilingual'})" class="mt-4 w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-3 px-4 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300 flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                </svg>
+                                专业版下载
+                            </button>
                         </div>
                     </div>
                     
@@ -320,7 +324,12 @@
                                 <h2 class="text-2xl font-bold text-green-500 mb-6 text-center">模式三：单词列表</h2>
                                 <div id="vocab-output" class="space-y-4"></div>
                             </div>
-                            <button onclick="downloadCard('card3-content', '单词列表.png', 'vocab')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-900 transition-colors">下载图片</button>
+                            <button onclick="openAdvancedDownloadModal({elementId: 'card3-content', filename: '单词列表', mode: 'vocab'})" class="mt-4 w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-3 px-4 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300 flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                </svg>
+                                专业版下载
+                            </button>
                         </div>
                     </div>
                     
@@ -331,7 +340,12 @@
                                 <h2 class="text-2xl font-bold text-purple-500 mb-6 text-center">模式四：填空测试</h2>
                                 <div id="test-output" class="text-gray-700 leading-relaxed text-base"></div>
                             </div>
-                            <button onclick="downloadCard('card4-content', '填空测试.png', 'test')" class="mt-4 w-full bg-gray-800 text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-900 transition-colors">下载图片</button>
+                            <button onclick="openAdvancedDownloadModal({elementId: 'card4-content', filename: '填空测试', mode: 'test'})" class="mt-4 w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-3 px-4 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300 flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                </svg>
+                                专业版下载
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -344,6 +358,7 @@
     </div>
 
     <script src="js/main.js"></script>
+    <script src="js/advanced-download-modal.js"></script>
 
 
 
