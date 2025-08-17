@@ -304,52 +304,15 @@ class ImageFormatModal {
             downloadBtn.innerHTML = '🔄 生成中...';
             downloadBtn.disabled = true;
 
-            console.log('开始生成高质量图片...');
-
-            // 使用高级渲染引擎
-            const renderer = new AdvancedCanvasRenderer(1200, 1600);
-
-            // 配置渲染设置 - 确保与预览使用相同参数
-            const renderConfig = {
-                template: this.currentSettings.template,
-                colorTheme: this.currentSettings.colorTheme,
-                titleFont: this.currentSettings.titleFont,
-                bodyFont: this.currentSettings.bodyFont,
-                fontSize: this.currentSettings.fontSize, // 与预览使用相同字体大小
-                spacing: this.currentSettings.spacing, // 与预览使用相同行间距
-                margin: this.currentSettings.margin // 与预览使用相同边距
-            };
-
-            console.log('渲染配置:', renderConfig);
-
-            // 渲染高质量图片
-            const imageData = await renderer.renderCard(this.currentCardData, renderConfig);
-
-            // 下载图片
-            const link = document.createElement('a');
-            const filename = this.currentCardData.filename || '学习卡片';
-            const templateName = this.currentSettings.template;
-            const colorName = this.currentSettings.colorTheme;
-
-            link.download = `${filename.replace('.png', '')}_${templateName}_${colorName}.png`;
-            link.href = imageData;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            console.log('图片下载完成');
+            // 图片下载功能已移除
+            console.log('图片下载功能已禁用');
 
             // 恢复按钮状态
             downloadBtn.innerHTML = originalText;
             downloadBtn.disabled = false;
 
-            // 显示成功消息
-            this.showSuccessMessage('🎉 图片已成功下载！');
-
-            // 延迟关闭模态框
-            setTimeout(() => {
-                this.close();
-            }, 2000);
+            // 显示禁用消息
+            this.showErrorMessage('图片下载功能已禁用');
 
         } catch (error) {
             console.error('下载图片失败:', error);

@@ -70,13 +70,13 @@
 
 2. **安装依赖**
    ```bash
-   npm install
+npm install
    ```
 
 3. **启动服务**
    ```bash
    # 生产环境
-   npm start
+npm start
    
    # 开发环境（自动重启）
 npm run dev

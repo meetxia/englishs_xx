@@ -1035,6 +1035,50 @@ function renderCards(story, wordsWithDetails) {
             testContainer.appendChild(document.createTextNode(part));
         }
     });
+
+    // 自动保存到历史记录
+    setTimeout(() => {
+        try {
+            console.log('🔄 准备保存历史记录...');
+
+            // 检查历史记录管理器是否可用
+            if (!window.historyManager) {
+                console.log('⚠️ 历史记录管理器未初始化，尝试重新初始化...');
+                // 如果历史记录管理器未初始化，尝试手动初始化
+                if (typeof HistoryManager !== 'undefined') {
+                    window.historyManager = new HistoryManager();
+                    console.log('✅ 历史记录管理器手动初始化成功');
+                } else {
+                    console.error('❌ HistoryManager 类未定义');
+                    return;
+                }
+            }
+
+            const historyData = {
+                storyOutput: storyHTML,
+                studyOutput: studyHTML,
+                vocabOutput: wordsWithDetails.map(word => ({
+                    word: word.en,
+                    translation: word.cn,
+                    phonetic: word.phonetic || '',
+                    pos: word.pos || ''
+                })),
+                testOutput: testContainer.innerHTML
+            };
+
+            console.log('📝 历史记录数据:', historyData);
+
+            // 尝试保存历史记录
+            const saved = window.historyManager.addHistory(historyData);
+            if (saved) {
+                console.log('✅ 历史记录保存成功');
+            } else {
+                console.error('❌ 历史记录保存失败');
+            }
+        } catch (error) {
+            console.error('❌ 保存历史记录时发生错误:', error);
+        }
+    }, 2000); // 延迟2秒保存，确保DOM已更新和历史记录管理器已初始化
 }
 
 // 新方案：直接跳转到html2img.html页面
@@ -1106,8 +1150,9 @@ function downloadCard(elementId, filename, mode) {
     const url = `html2img.html?${params.toString()}`;
     console.log('跳转到:', url);
 
-    // 在新标签页中打开
-    window.open(url, '_blank');
+    // 下载功能已禁用
+    console.log('下载功能已禁用');
+    alert('下载功能已禁用');
 }
 
 // 保留原始下载函数作为备用
@@ -1264,18 +1309,12 @@ function downloadCardLegacy(elementId, filename, mode) {
                     element.style.transform = 'none';
                 }
             }).then(canvas => {
-                // 创建下载链接
-                const image = canvas.toDataURL('image/png', 1.0);
-                const link = document.createElement('a');
-                link.href = image;
-                link.download = filename;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                // 下载功能已禁用
+                console.log('下载功能已禁用');
+                alert('下载功能已禁用');
 
                 // 清理临时元素
                 document.body.removeChild(tempContainer);
-                console.log('图片下载完成:', filename);
             }).catch(error => {
                 console.error('生成图片失败:', error);
                 alert('生成图片失败，请重试');

@@ -581,12 +581,9 @@ class AdvancedCanvasRenderer {
         this.ctx.fillText(date, this.width / 2, footerY + 20);
     }
 
-    // 下载卡片
+    // 下载卡片 - 已禁用
     async downloadCard(filename) {
-        const link = document.createElement('a');
-        link.download = filename;
-        link.href = this.canvas.toDataURL('image/png', 1.0);
-        link.click();
+        console.log('Canvas下载功能已禁用');
     }
 }
 

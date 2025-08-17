@@ -50,14 +50,8 @@ class HTML2IMGIntegration {
         try {
             console.log('🔧 html2imgIntegration: 开始初始化HTML2IMG模态框...');
 
-            // 检查必要的依赖
+            // 检查必要的依赖（图片下载相关依赖已移除）
             const missingDeps = [];
-            if (!window.html2canvas) {
-                missingDeps.push('html2canvas');
-            }
-            if (!window.JSZip) {
-                missingDeps.push('JSZip');
-            }
             if (!window.marked) {
                 missingDeps.push('marked');
             }
@@ -908,24 +902,8 @@ class HTML2IMGIntegration {
                 throw new Error('预览区域未找到');
             }
 
-            // 使用html2canvas生成图片
-            const canvas = await html2canvas(previewArea, {
-                scale: this.currentSettings.imageQuality,
-                useCORS: true,
-                backgroundColor: null,
-                width: previewArea.offsetWidth,
-                height: previewArea.offsetHeight
-            });
-
-            // 下载图片
-            const link = document.createElement('a');
-            link.download = this.currentCardData.filename || '学习卡片.png';
-            link.href = canvas.toDataURL('image/png');
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            this.showMessage('图片下载成功！', 'success');
+            // 图片下载功能已禁用
+            this.showMessage('图片下载功能已禁用', 'error');
 
         } catch (error) {
             console.error('下载失败:', error);
@@ -954,75 +932,8 @@ class HTML2IMGIntegration {
                 return;
             }
 
-            // 检查JSZip是否可用
-            if (typeof JSZip === 'undefined') {
-                this.showMessage('JSZip库未加载，无法打包下载', 'error');
-                return;
-            }
-
-            const zip = new JSZip();
-            const previewArea = document.getElementById('html2img-preview-area');
-
-            if (!previewArea) {
-                throw new Error('预览区域未找到');
-            }
-
-            // 保存当前状态
-            const originalCardData = this.currentCardData;
-            const originalCardIndex = this.currentCardIndex;
-
-            // 逐个生成图片
-            for (let i = 0; i < cardsToDownload.length; i++) {
-                const cardData = cardsToDownload[i];
-                button.textContent = `正在生成 ${i + 1}/${cardsToDownload.length}...`;
-
-                // 更新预览内容为当前卡片
-                this.currentCardData = cardData;
-                this.currentCardIndex = i;
-                this.updatePreview();
-
-                // 等待渲染完成
-                await new Promise(resolve => setTimeout(resolve, 300));
-
-                // 生成图片
-                const canvas = await html2canvas(previewArea, {
-                    scale: this.currentSettings.imageQuality,
-                    useCORS: true,
-                    backgroundColor: null,
-                    width: previewArea.offsetWidth,
-                    height: previewArea.offsetHeight
-                });
-
-                // 转换为blob并添加到zip
-                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-                const filename = cardData.filename || `${cardData.tabName || '卡片'}${i + 1}.png`;
-                zip.file(filename, blob);
-
-                // 释放canvas内存
-                this.releaseCanvasMemory(canvas);
-            }
-
-            // 恢复原始状态
-            this.currentCardData = originalCardData;
-            this.currentCardIndex = originalCardIndex;
-            this.updatePreview();
-
-            // 生成并下载zip文件
-            button.textContent = '正在打包...';
-            const zipBlob = await zip.generateAsync({ type: "blob" });
-
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(zipBlob);
-            const pageTitle = this.allCardsData ? this.allCardsData.pageTitle : '爽文背单词卡片';
-            link.download = `${pageTitle}_全部卡片.zip`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            // 清理URL对象
-            URL.revokeObjectURL(link.href);
-
-            this.showMessage('批量下载完成！', 'success');
+            // 批量下载功能已禁用
+            this.showMessage('批量下载功能已禁用', 'error');
 
         } catch (error) {
             console.error('批量下载失败:', error);

@@ -6,10 +6,7 @@
     <title>文本转图片生成器 (AI 智能排版版)</title>
     <!-- 引入Tailwind CSS框架 -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 引入html2canvas库 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <!-- 引入JSZip库，用于打包下载 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- 图片下载相关库已移除 -->
     <!-- 引入marked.js库，用于解析Markdown -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <!-- 引入DOMPurify库，用于安全的HTML净化 -->
@@ -293,8 +290,6 @@
         // 检查关键库是否加载成功
         function checkLibrariesLoaded() {
             const libraries = {
-                'html2canvas': typeof html2canvas !== 'undefined',
-                'JSZip': typeof JSZip !== 'undefined',
                 'marked': typeof marked !== 'undefined',
                 'DOMPurify': typeof DOMPurify !== 'undefined'
             };
@@ -815,75 +810,13 @@
                 });
 
                 downloadBtn.addEventListener('click', () => {
-                    const page = state.pages[state.currentPageIndex];
-                    const filename = `${sanitizeFilename(page.title || '无标题')}_第${state.currentPageIndex + 1}页.png`;
-
-                    // 添加loading状态
-                    downloadBtn.disabled = true;
-                    downloadBtn.innerHTML = '<span class="loading-spinner"></span>生成中...';
-
-                    html2canvas(previewArea, { scale: state.settings.imageQuality, useCORS: true, backgroundColor: null })
-                        .then(canvas => {
-                            const link = document.createElement('a');
-                            link.download = filename;
-                            link.href = canvas.toDataURL('image/png');
-                            link.click();
-                            showSuccessMessage('图片下载成功！');
-                        })
-                        .catch(err => {
-                            console.error('图片生成失败!', err);
-                            showErrorMessage('图片生成失败，请重试');
-                        })
-                        .finally(() => {
-                            downloadBtn.disabled = false;
-                            downloadBtn.textContent = '2. 下载当前页';
-                        });
+                    // 图片下载功能已移除
+                    showErrorMessage('图片下载功能已禁用');
                 });
             
                 downloadAllBtn.addEventListener('click', async () => {
-                    // 检查页面数量限制
-                    if (!checkPageLimit(state.pages.length)) {
-                        return;
-                    }
-
-                    const originalIndex = state.currentPageIndex;
-                    const zip = new JSZip();
-                    const originalText = downloadAllBtn.textContent;
-                    downloadAllBtn.disabled = true;
-
-                    try {
-                        for (let i = 0; i < state.pages.length; i++) {
-                            downloadAllBtn.textContent = `正在生成 ${i + 1}/${state.pages.length}...`;
-                            state.currentPageIndex = i;
-                            renderApp();
-                            await new Promise(resolve => setTimeout(resolve, 100));
-
-                            const canvas = await html2canvas(previewArea, { scale: state.settings.imageQuality, useCORS: true, backgroundColor: null });
-                            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-                            const page = state.pages[i];
-                            zip.file(`${sanitizeFilename(page.title || '无标题')}_第${i + 1}页.png`, blob);
-
-                            // 释放canvas内存
-                            releaseCanvasMemory(canvas);
-                        }
-
-                        downloadAllBtn.textContent = '正在打包...';
-                        const zipBlob = await zip.generateAsync({type:"blob"});
-                        const link = document.createElement('a');
-                        link.href = URL.createObjectURL(zipBlob);
-                        link.download = `${sanitizeFilename(state.pages[0].title || '无标题')}_全部.zip`;
-                        link.click();
-                        URL.revokeObjectURL(link.href);
-                        showSuccessMessage('批量下载完成！');
-                    } catch (error) {
-                        console.error('批量下载失败:', error);
-                        showErrorMessage('批量下载失败，请重试');
-                    } finally {
-                        downloadAllBtn.disabled = false;
-                        downloadAllBtn.textContent = originalText;
-                        state.currentPageIndex = originalIndex;
-                        renderApp();
-                    }
+                    // 批量下载功能已移除
+                    showErrorMessage('批量下载功能已禁用');
                 });
 
                 addNewPageBtn.addEventListener('click', () => {

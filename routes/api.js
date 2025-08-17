@@ -933,13 +933,36 @@ router.post('/generate', async (req, res) => {
  */
 router.post('/generate-card', async (req, res) => {
   console.log('🎨 收到卡片生成请求');
+  console.log('📊 请求头:', JSON.stringify(req.headers, null, 2));
+  console.log('📊 请求体大小:', JSON.stringify(req.body).length);
+  
   const { htmlContent, options } = req.body;
 
   // 参数验证
   if (!htmlContent || !options) {
+    console.warn('⚠️ 缺少必要参数');
+    console.log('📊 htmlContent存在:', !!htmlContent);
+    console.log('📊 options存在:', !!options);
     return res.status(400).json({ 
       error: '缺少必要参数',
       details: 'htmlContent 和 options 参数是必需的'
+    });
+  }
+
+  // 详细参数验证
+  if (typeof htmlContent !== 'string') {
+    console.warn('⚠️ HTML内容类型错误:', typeof htmlContent);
+    return res.status(400).json({ 
+      error: 'HTML内容格式错误',
+      details: 'htmlContent 必须是字符串类型'
+    });
+  }
+
+  if (!options.output || !options.format) {
+    console.warn('⚠️ 选项参数不完整:', options);
+    return res.status(400).json({ 
+      error: '生成选项不完整',
+      details: 'options.output 和 options.format 是必需的'
     });
   }
 
@@ -955,16 +978,45 @@ router.post('/generate-card', async (req, res) => {
       preview: options.preview
     });
 
+    console.log('📏 HTML内容长度:', htmlContent.length);
+    console.log('🎬 开始生成过程...');
+
     // 生成文件
     const buffer = await cardGenerator.generateOutput(htmlContent, options);
+    
+    console.log('✅ 生成完成，设置响应头...');
     
     // 设置响应头
     if (options.output === 'pdf') {
       res.contentType('application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="${options.filename || 'card'}.pdf"`);
+      // 修复: 对PDF文件名进行URL编码以避免特殊字符问题
+      const safePdfFilename = encodeURIComponent(options.filename || 'card');
+      res.setHeader('Content-Disposition', `attachment; filename="${safePdfFilename}.pdf"; filename*=UTF-8''${safePdfFilename}.pdf`);
     } else {
-      res.contentType('image/png');
-      res.setHeader('Content-Disposition', `attachment; filename="${options.filename || 'card'}.png"`);
+      // 根据实际格式设置正确的 Content-Type
+      const imageFormat = (options.format || 'png').toLowerCase();
+      let mimeType, fileExtension;
+      
+      if (imageFormat === 'jpeg' || imageFormat === 'jpg') {
+        mimeType = 'image/jpeg';
+        fileExtension = 'jpg';
+      } else if (imageFormat === 'webp') {
+        mimeType = 'image/webp';
+        fileExtension = 'webp';
+      } else {
+        mimeType = 'image/png';
+        fileExtension = 'png';
+      }
+      
+      console.log('📋 设置响应类型:', mimeType);
+      res.contentType(mimeType);
+      
+      // 预览模式时不设置下载头，直接显示图片
+      if (!options.preview) {
+        // 修复: 对文件名进行URL编码以避免特殊字符问题
+        const safeFilename = encodeURIComponent(options.filename || 'card');
+        res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}.${fileExtension}"; filename*=UTF-8''${safeFilename}.${fileExtension}`);
+      }
     }
 
     // 发送文件
@@ -973,10 +1025,28 @@ router.post('/generate-card', async (req, res) => {
 
   } catch (error) {
     console.error('❌ 卡片生成失败:', error);
-    res.status(500).json({ 
+    console.error('📊 错误类型:', error.constructor.name);
+    console.error('📊 错误堆栈:', error.stack);
+    
+    // 根据错误类型返回不同的状态码和信息
+    let statusCode = 500;
+    let errorResponse = { 
       error: '卡片生成失败', 
       details: error.message 
-    });
+    };
+
+    if (error.message.includes('HTML内容无效')) {
+      statusCode = 400;
+      errorResponse.error = 'HTML内容无效';
+    } else if (error.message.includes('超时')) {
+      statusCode = 408;
+      errorResponse.error = '请求超时';
+    } else if (error.message.includes('无效的生成参数')) {
+      statusCode = 400;
+      errorResponse.error = '参数错误';
+    }
+
+    res.status(statusCode).json(errorResponse);
   }
 });
 
