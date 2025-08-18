@@ -340,7 +340,7 @@ function playBeepSound(frequency, duration, volume = 0.1) {
 let selectedWordList = '';
 let selectedTheme = '';
 // 默认单词数量
-let wordCount = 15; // 按照500字/30比例，大约是16-17个单词，保守设置为15
+let wordCount = 15; // 按照200字/10个单词的比例，300字对应15个单词
 let maxWordCount = 15;
 
 // 从API加载词汇分类和故事主题
@@ -390,9 +390,10 @@ async function loadDataFromAPI() {
         if (themes.length > 0) {
             storyThemes.length = 0; // 清空数组
             themes.forEach(theme => storyThemes.push(theme));
-            // 默认选择第一个主题
-            selectedTheme = themes[0].id;
-            console.log('默认选择主题:', selectedTheme);
+            // 随机选择一个主题作为默认
+            const randomIndex = Math.floor(Math.random() * themes.length);
+            selectedTheme = themes[randomIndex].id;
+            console.log('随机选择主题:', selectedTheme, '主题名称:', themes[randomIndex].name);
         } else {
             // 如果没有主题，添加一个默认的
             storyThemes.length = 0; // 清空数组
@@ -422,10 +423,10 @@ async function loadDataFromAPI() {
 // 根据故事字数更新最大单词数量
 function updateMaxWordCount() {
     const charCount = parseInt(charCountSlider.value);
-    
-    // 实现新的字数-单词比例关系：300字/10个单词，600字/20个单词，线性增长
-    maxWordCount = Math.floor(charCount / 30);
-    
+
+    // 实现新的字数-单词比例关系：200字/10个单词，400字/20个单词，线性增长
+    maxWordCount = Math.floor(charCount / 20);
+
     // 限制最小和最大单词数量
     if (maxWordCount < 5) maxWordCount = 5; // 确保最少有5个单词
     if (maxWordCount > 50) maxWordCount = 50; // 最多50个单词
@@ -1436,14 +1437,126 @@ function initTabs() {
     }
 }
 
+// 创建悬浮按钮
+function createFloatingButtons() {
+    // 创建悬浮按钮容器
+    const floatingContainer = document.createElement('div');
+    floatingContainer.className = 'floating-buttons';
+    floatingContainer.id = 'floating-buttons';
+
+    // 创建历史记录按钮
+    const historyBtn = document.createElement('button');
+    historyBtn.id = 'history-btn';
+    historyBtn.className = 'floating-btn history-btn';
+    historyBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        历史记录
+    `;
+
+    // 创建生成按钮
+    const generateBtn = document.createElement('button');
+    generateBtn.id = 'generate-btn';
+    generateBtn.className = 'floating-btn generate-btn';
+    generateBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+        AI 生成故事 & 学习卡片
+    `;
+
+    // 添加按钮到容器
+    floatingContainer.appendChild(historyBtn);
+    floatingContainer.appendChild(generateBtn);
+
+    // 添加到页面
+    document.body.appendChild(floatingContainer);
+
+    return { historyBtn, generateBtn, floatingContainer };
+}
+
+// 滚动检测函数
+function handleScroll() {
+    const floatingButtons = document.getElementById('floating-buttons');
+    if (!floatingButtons) return;
+
+    const windowHeight = window.innerHeight;
+    const documentHeight = document.documentElement.scrollHeight;
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+    // 检查是否滚动到接近底部（距离底部100px以内）
+    const isNearBottom = scrollTop + windowHeight >= documentHeight - 100;
+
+    if (isNearBottom) {
+        floatingButtons.classList.add('at-bottom');
+    } else {
+        floatingButtons.classList.remove('at-bottom');
+    }
+}
+
+// 初始化展开/收起功能
+function initToggleFeatures() {
+    // 词库选择展开/收起
+    const wordListToggle = document.getElementById('word-list-toggle');
+    const wordListContainer = document.getElementById('word-list-container');
+
+    if (wordListToggle && wordListContainer) {
+        wordListToggle.addEventListener('click', () => {
+            const isCollapsed = wordListContainer.classList.contains('collapsed');
+            const toggleText = wordListToggle.querySelector('.toggle-text');
+            const toggleIcon = wordListToggle.querySelector('.toggle-icon');
+
+            if (isCollapsed) {
+                wordListContainer.classList.remove('collapsed');
+                wordListContainer.classList.add('expanded');
+                toggleText.textContent = '收起';
+                toggleIcon.classList.add('rotated');
+            } else {
+                wordListContainer.classList.remove('expanded');
+                wordListContainer.classList.add('collapsed');
+                toggleText.textContent = '展开全部';
+                toggleIcon.classList.remove('rotated');
+            }
+        });
+    }
+
+    // 故事主题展开/收起
+    const themeToggle = document.getElementById('theme-toggle');
+    const themeContainer = document.getElementById('theme-container');
+
+    if (themeToggle && themeContainer) {
+        themeToggle.addEventListener('click', () => {
+            const isCollapsed = themeContainer.classList.contains('collapsed');
+            const toggleText = themeToggle.querySelector('.toggle-text');
+            const toggleIcon = themeToggle.querySelector('.toggle-icon');
+
+            if (isCollapsed) {
+                themeContainer.classList.remove('collapsed');
+                themeContainer.classList.add('expanded');
+                toggleText.textContent = '收起';
+                toggleIcon.classList.add('rotated');
+            } else {
+                themeContainer.classList.remove('expanded');
+                themeContainer.classList.add('collapsed');
+                toggleText.textContent = '展开全部';
+                toggleIcon.classList.remove('rotated');
+            }
+        });
+    }
+}
+
 // 在页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('=== 页面加载完成，开始初始化 ===');
     console.log('当前时间:', new Date().toLocaleString());
 
+    // 创建悬浮按钮
+    const { historyBtn, generateBtn: floatingGenerateBtn, floatingContainer } = createFloatingButtons();
+
     // 获取DOM元素
     customWordsInput = document.getElementById('custom-words');
-    generateBtn = document.getElementById('generate-btn');
+    generateBtn = floatingGenerateBtn; // 使用悬浮的生成按钮
     loadingDiv = document.getElementById('loading');
     outputDiv = document.getElementById('output');
     errorMessageDiv = document.getElementById('error-message');
@@ -1451,6 +1564,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     charCountDisplay = document.getElementById('char-count-display');
     wordListContainer = document.getElementById('word-list-container');
     themeContainer = document.getElementById('theme-container');
+
+    // 添加滚动事件监听器
+    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('resize', handleScroll);
 
     console.log('DOM元素获取结果:');
     console.log('customWordsInput:', customWordsInput);
@@ -1604,12 +1721,23 @@ function initPronunciationSettings() {
         updateMaxWordCount();
         console.log('单词数量滑块初始化完成');
 
+        // 初始化展开/收起功能
+        initToggleFeatures();
+
+        // 初始化标签页
+        initTabs();
+
+        // 初始化示例标签页
+        initExampleTabs();
+
         // 添加用户交互监听器，确保音频可以正常播放
         document.addEventListener('click', () => {
             if (!userInteracted) {
                 ensureUserInteraction();
             }
         }, { once: true });
+
+        console.log('=== 页面初始化完成 ===');
 
     } catch (error) {
         console.error('页面初始化失败:', error);

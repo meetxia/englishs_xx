@@ -67,6 +67,51 @@ class HistoryManager {
                 }
             });
         }
+
+        // 历史记录标签页切换
+        this.bindHistoryTabEvents();
+    }
+
+    /**
+     * 绑定历史记录标签页事件
+     */
+    bindHistoryTabEvents() {
+        // 使用事件委托处理标签页点击
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('history-tab-btn')) {
+                const tabType = e.target.getAttribute('data-history-tab');
+                this.switchHistoryTab(tabType);
+            }
+        });
+    }
+
+    /**
+     * 切换历史记录标签页
+     */
+    switchHistoryTab(tabType) {
+        // 更新标签按钮状态
+        document.querySelectorAll('.history-tab-btn').forEach(btn => {
+            btn.classList.remove('active', 'text-red-500', 'border-red-500', 'border-b-2');
+            btn.classList.add('text-gray-500');
+        });
+
+        const activeBtn = document.querySelector(`[data-history-tab="${tabType}"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('active', 'text-red-500', 'border-red-500', 'border-b-2');
+            activeBtn.classList.remove('text-gray-500');
+        }
+
+        // 切换内容面板
+        document.querySelectorAll('.history-tab-pane').forEach(pane => {
+            pane.classList.add('hidden');
+            pane.classList.remove('active');
+        });
+
+        const activePane = document.getElementById(`history-tab-${tabType}`);
+        if (activePane) {
+            activePane.classList.remove('hidden');
+            activePane.classList.add('active');
+        }
     }
 
     /**
@@ -430,7 +475,7 @@ class HistoryManager {
     showHistoryDetail(record) {
         const detailEmpty = document.getElementById('history-detail-empty');
         const detail = document.getElementById('history-detail');
-        
+
         if (!detailEmpty || !detail) return;
 
         detailEmpty.classList.add('hidden');
@@ -441,11 +486,10 @@ class HistoryManager {
         const timeEl = document.getElementById('history-detail-time');
         const modeEl = document.getElementById('history-detail-mode');
         const configEl = document.getElementById('history-detail-config');
-        const contentEl = document.getElementById('history-detail-content');
 
         if (titleEl) titleEl.textContent = record.filename;
         if (timeEl) timeEl.textContent = new Date(record.timestamp).toLocaleString('zh-CN');
-        
+
         const modeNames = {
             'story': '爽文带背',
             'bilingual': '中英对照',
@@ -453,7 +497,7 @@ class HistoryManager {
             'test': '填空测试'
         };
         if (modeEl) modeEl.textContent = modeNames[record.mode] || record.mode;
-        
+
         if (configEl) {
             const config = record.config;
             const configInfo = [];
@@ -464,43 +508,49 @@ class HistoryManager {
             configEl.textContent = configInfo.join(' | ');
         }
 
-        if (contentEl) {
-            contentEl.innerHTML = this.formatContentPreview(record);
-        }
+        // 填充所有模式的内容
+        this.fillAllModeContents(record);
+
+        // 根据记录的模式设置默认激活的标签页
+        this.switchHistoryTab(record.mode);
     }
 
     /**
-     * 格式化内容预览
+     * 填充所有模式的内容
      */
-    formatContentPreview(record) {
+    fillAllModeContents(record) {
         const content = record.content;
-        let preview = '';
 
-        switch (record.mode) {
-            case 'story':
-                preview = content.storyOutput || '暂无内容';
-                break;
-            case 'bilingual':
-                preview = content.studyOutput || '暂无内容';
-                break;
-            case 'vocab':
-                if (content.vocabOutput && content.vocabOutput.length > 0) {
-                    preview = content.vocabOutput.slice(0, 5).map(item => 
-                        `<div class="mb-2"><strong>${item.word}</strong> - ${item.translation}</div>`
-                    ).join('');
-                } else {
-                    preview = '暂无词汇';
-                }
-                break;
-            case 'test':
-                preview = content.testOutput || '暂无内容';
-                break;
-            default:
-                preview = '暂无内容';
+        // 爽文带背内容
+        const storyContent = document.querySelector('.history-story-content');
+        if (storyContent) {
+            storyContent.innerHTML = content.storyOutput || '<div class="text-gray-500 text-center py-8">暂无爽文带背内容</div>';
         }
 
-        return preview;
+        // 中英对照内容
+        const bilingualContent = document.querySelector('.history-bilingual-content');
+        if (bilingualContent) {
+            bilingualContent.innerHTML = content.studyOutput || '<div class="text-gray-500 text-center py-8">暂无中英对照内容</div>';
+        }
+
+        // 单词列表内容
+        const vocabContent = document.querySelector('.history-vocab-content');
+        if (vocabContent) {
+            if (content.vocabOutput && content.vocabOutput.length > 0) {
+                vocabContent.innerHTML = this.formatVocabList(content.vocabOutput);
+            } else {
+                vocabContent.innerHTML = '<div class="text-gray-500 text-center py-8">暂无单词列表内容</div>';
+            }
+        }
+
+        // 填空测试内容
+        const testContent = document.querySelector('.history-test-content');
+        if (testContent) {
+            testContent.innerHTML = content.testOutput || '<div class="text-gray-500 text-center py-8">暂无填空测试内容</div>';
+        }
     }
+
+
 
     /**
      * 隐藏历史记录详情
@@ -638,27 +688,34 @@ class HistoryManager {
         if (!element) return;
 
         const content = record.content;
-        
-        switch (record.mode) {
-            case 'story':
-                const storyOutput = document.getElementById('story-output');
-                if (storyOutput) storyOutput.innerHTML = content.storyOutput || '';
-                break;
-            case 'bilingual':
-                const studyOutput = document.getElementById('study-output');
-                if (studyOutput) studyOutput.innerHTML = content.studyOutput || '';
-                break;
-            case 'vocab':
-                const vocabOutput = document.getElementById('vocab-output');
-                if (vocabOutput && content.vocabOutput) {
-                    vocabOutput.innerHTML = this.formatVocabList(content.vocabOutput);
-                }
-                break;
-            case 'test':
-                const testOutput = document.getElementById('test-output');
-                if (testOutput) testOutput.innerHTML = content.testOutput || '';
-                break;
+
+        // 恢复所有模式的内容，而不仅仅是当前模式
+        const storyOutput = document.getElementById('story-output');
+        if (storyOutput && content.storyOutput) {
+            storyOutput.innerHTML = content.storyOutput;
         }
+
+        const studyOutput = document.getElementById('study-output');
+        if (studyOutput && content.studyOutput) {
+            studyOutput.innerHTML = content.studyOutput;
+        }
+
+        const vocabOutput = document.getElementById('vocab-output');
+        if (vocabOutput && content.vocabOutput && content.vocabOutput.length > 0) {
+            // 使用原始的词汇列表格式化函数
+            if (window.formatVocabList) {
+                window.formatVocabList(content.vocabOutput);
+            } else {
+                vocabOutput.innerHTML = this.formatVocabList(content.vocabOutput);
+            }
+        }
+
+        const testOutput = document.getElementById('test-output');
+        if (testOutput && content.testOutput) {
+            testOutput.innerHTML = content.testOutput;
+        }
+
+        console.log('✅ 已恢复历史记录内容到主界面');
     }
 
     /**
@@ -666,11 +723,29 @@ class HistoryManager {
      */
     formatVocabList(vocabList) {
         if (!Array.isArray(vocabList)) return '';
-        
-        return vocabList.map(item => `
-            <div class="vocab-item flex justify-between items-center border-b pb-2 mb-2">
-                <span class="font-semibold text-gray-800 cursor-pointer" onclick="pronounceWord('${item.word}')">${item.word}</span>
-                <span class="text-gray-600">${item.translation}</span>
+
+        return vocabList.map((item, index) => `
+            <div class="vocab-item border border-gray-200 rounded-lg p-4 mb-3 bg-white hover:shadow-sm transition-shadow">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="font-bold text-lg text-gray-800 cursor-pointer hover:text-blue-600" onclick="pronounceWord('${item.word}')" title="点击发音">${item.word}</span>
+                            ${item.phonetic ? `<span class="text-sm text-gray-500">${item.phonetic}</span>` : ''}
+                            ${item.pos ? `<span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">${item.pos}</span>` : ''}
+                        </div>
+                        <div class="text-gray-700 mb-1">
+                            <strong>释义：</strong>${item.translation}
+                        </div>
+                        ${item.example ? `
+                            <div class="text-sm text-gray-600 mt-2">
+                                <strong>例句：</strong>${item.example}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="text-sm text-gray-400 ml-4">
+                        ${index + 1}
+                    </div>
+                </div>
             </div>
         `).join('');
     }
@@ -798,14 +873,58 @@ class HistoryManager {
         console.log('🧪 开始测试历史记录功能...');
 
         try {
-            // 测试数据
+            // 测试数据 - 包含所有四种模式的完整内容
             const testData = {
-                storyOutput: '<p>这是一个测试故事</p>',
-                studyOutput: '<p>这是测试学习内容</p>',
+                storyOutput: `
+                    <div class="story-content">
+                        <h2>测试爽文故事</h2>
+                        <p>这是一个包含<span class="highlight">test</span>单词的测试故事。</p>
+                        <p>故事内容展示了如何在爽文中自然地融入英语单词学习。</p>
+                    </div>
+                `,
+                studyOutput: `
+                    <div class="bilingual-content">
+                        <div class="sentence-pair">
+                            <div class="english">This is a test sentence.</div>
+                            <div class="chinese">这是一个测试句子。</div>
+                        </div>
+                        <div class="sentence-pair">
+                            <div class="english">We are testing the history function.</div>
+                            <div class="chinese">我们正在测试历史记录功能。</div>
+                        </div>
+                    </div>
+                `,
                 vocabOutput: [
-                    { word: 'test', translation: '测试', phonetic: '/test/', pos: 'n.' }
+                    {
+                        word: 'test',
+                        translation: '测试；考试',
+                        phonetic: '/test/',
+                        pos: 'n./v.',
+                        example: 'This is a test sentence.'
+                    },
+                    {
+                        word: 'history',
+                        translation: '历史；历史记录',
+                        phonetic: '/ˈhɪstəri/',
+                        pos: 'n.',
+                        example: 'We are studying history.'
+                    },
+                    {
+                        word: 'function',
+                        translation: '功能；函数',
+                        phonetic: '/ˈfʌŋkʃən/',
+                        pos: 'n./v.',
+                        example: 'This function works well.'
+                    }
                 ],
-                testOutput: '<p>这是测试练习</p>'
+                testOutput: `
+                    <div class="test-content">
+                        <p>请填入正确的单词：</p>
+                        <p>This is a <input type="text" class="test-input" data-answer="test"> sentence.</p>
+                        <p>We are studying <input type="text" class="test-input" data-answer="history"> records.</p>
+                        <p>This <input type="text" class="test-input" data-answer="function"> works well.</p>
+                    </div>
+                `
             };
 
             // 尝试保存
@@ -817,6 +936,12 @@ class HistoryManager {
                 // 获取并显示统计信息
                 const stats = this.getHistoryStats();
                 console.log('📊 历史记录统计:', stats);
+
+                // 显示最新的历史记录内容
+                const latestRecord = this.getHistory()[0];
+                if (latestRecord) {
+                    console.log('📝 最新历史记录内容:', latestRecord.content);
+                }
 
                 return true;
             } else {
@@ -869,5 +994,88 @@ window.viewHistoryData = function() {
     } else {
         console.error('❌ 历史记录管理器未初始化');
         return [];
+    }
+};
+
+// 全局测试历史记录标签页功能
+window.testHistoryTabs = function() {
+    console.log('🧪 开始测试历史记录标签页功能...');
+
+    if (!window.historyManager) {
+        console.error('❌ 历史记录管理器未初始化');
+        return false;
+    }
+
+    try {
+        // 首先创建测试数据
+        const testResult = window.historyManager.testHistoryFunction();
+        if (!testResult) {
+            console.error('❌ 创建测试数据失败');
+            return false;
+        }
+
+        // 打开历史记录模态框
+        window.historyManager.showHistoryModal();
+
+        // 等待一下让模态框完全加载
+        setTimeout(() => {
+            // 选择第一条历史记录
+            const firstHistoryItem = document.querySelector('.history-item');
+            if (firstHistoryItem) {
+                firstHistoryItem.click();
+                console.log('✅ 已选择第一条历史记录');
+
+                // 测试标签页切换
+                setTimeout(() => {
+                    const tabs = ['story', 'bilingual', 'vocab', 'test'];
+                    let currentTabIndex = 0;
+
+                    function testNextTab() {
+                        if (currentTabIndex >= tabs.length) {
+                            console.log('✅ 所有标签页测试完成');
+                            return;
+                        }
+
+                        const tabType = tabs[currentTabIndex];
+                        const tabBtn = document.querySelector(`[data-history-tab="${tabType}"]`);
+                        const tabPane = document.getElementById(`history-tab-${tabType}`);
+
+                        if (tabBtn && tabPane) {
+                            tabBtn.click();
+                            console.log(`✅ 已切换到 ${tabType} 标签页`);
+
+                            // 检查内容是否显示
+                            setTimeout(() => {
+                                const isVisible = !tabPane.classList.contains('hidden');
+                                const hasContent = tabPane.querySelector('.history-story-content, .history-bilingual-content, .history-vocab-content, .history-test-content');
+
+                                if (isVisible && hasContent) {
+                                    console.log(`✅ ${tabType} 标签页内容正常显示`);
+                                } else {
+                                    console.warn(`⚠️ ${tabType} 标签页可能有显示问题`);
+                                }
+
+                                currentTabIndex++;
+                                testNextTab();
+                            }, 500);
+                        } else {
+                            console.error(`❌ 找不到 ${tabType} 标签页元素`);
+                            currentTabIndex++;
+                            testNextTab();
+                        }
+                    }
+
+                    testNextTab();
+                }, 1000);
+            } else {
+                console.error('❌ 找不到历史记录项');
+                return false;
+            }
+        }, 1000);
+
+        return true;
+    } catch (error) {
+        console.error('❌ 测试历史记录标签页功能时发生错误:', error);
+        return false;
     }
 };

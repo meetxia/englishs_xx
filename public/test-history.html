@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>历史记录功能测试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .test-result {
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+        }
+        .test-success {
+            background-color: #f0fdf4;
+            border-color: #22c55e;
+            color: #15803d;
+        }
+        .test-error {
+            background-color: #fef2f2;
+            border-color: #ef4444;
+            color: #dc2626;
+        }
+        .test-info {
+            background-color: #f0f9ff;
+            border-color: #3b82f6;
+            color: #1d4ed8;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-800 mb-8">历史记录功能测试</h1>
+        
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">测试控制面板</h2>
+            <div class="space-y-4">
+                <button id="test-basic" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    测试基本历史记录功能
+                </button>
+                <button id="test-tabs" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    测试标签页切换功能
+                </button>
+                <button id="view-data" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                    查看历史记录数据
+                </button>
+                <button id="clear-history" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                    清空历史记录
+                </button>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">测试结果</h2>
+            <div id="test-results" class="space-y-2">
+                <div class="test-result test-info">
+                    点击上方按钮开始测试...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入历史记录管理器 -->
+    <script src="js/history.js"></script>
+    
+    <script>
+        // 测试结果显示函数
+        function addTestResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result test-${type}`;
+            resultDiv.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            resultsDiv.appendChild(resultDiv);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+
+        // 等待历史记录管理器初始化
+        function waitForHistoryManager() {
+            return new Promise((resolve) => {
+                if (window.historyManager) {
+                    resolve();
+                    return;
+                }
+                
+                const checkInterval = setInterval(() => {
+                    if (window.historyManager) {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }
+                }, 100);
+                
+                // 超时处理
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    if (!window.historyManager) {
+                        addTestResult('历史记录管理器初始化超时', 'error');
+                    }
+                    resolve();
+                }, 5000);
+            });
+        }
+
+        // 绑定测试按钮事件
+        document.addEventListener('DOMContentLoaded', async function() {
+            addTestResult('页面加载完成，等待历史记录管理器初始化...', 'info');
+            
+            await waitForHistoryManager();
+            
+            if (window.historyManager) {
+                addTestResult('历史记录管理器初始化成功', 'success');
+            } else {
+                addTestResult('历史记录管理器初始化失败', 'error');
+                return;
+            }
+
+            // 测试基本功能
+            document.getElementById('test-basic').addEventListener('click', function() {
+                addTestResult('开始测试基本历史记录功能...', 'info');
+                
+                try {
+                    const result = window.testHistoryFunction();
+                    if (result) {
+                        addTestResult('基本历史记录功能测试通过', 'success');
+                    } else {
+                        addTestResult('基本历史记录功能测试失败', 'error');
+                    }
+                } catch (error) {
+                    addTestResult(`基本功能测试出错: ${error.message}`, 'error');
+                }
+            });
+
+            // 测试标签页功能
+            document.getElementById('test-tabs').addEventListener('click', function() {
+                addTestResult('开始测试标签页切换功能...', 'info');
+                
+                try {
+                    const result = window.testHistoryTabs();
+                    if (result) {
+                        addTestResult('标签页切换功能测试启动成功', 'success');
+                    } else {
+                        addTestResult('标签页切换功能测试启动失败', 'error');
+                    }
+                } catch (error) {
+                    addTestResult(`标签页功能测试出错: ${error.message}`, 'error');
+                }
+            });
+
+            // 查看数据
+            document.getElementById('view-data').addEventListener('click', function() {
+                addTestResult('查看历史记录数据...', 'info');
+                
+                try {
+                    const history = window.viewHistoryData();
+                    addTestResult(`当前历史记录数量: ${history.length}`, 'info');
+                    
+                    if (history.length > 0) {
+                        const latest = history[0];
+                        addTestResult(`最新记录: ${latest.filename} (${latest.mode})`, 'info');
+                        
+                        // 检查内容完整性
+                        const content = latest.content;
+                        const hasStory = content.storyOutput && content.storyOutput.trim();
+                        const hasBilingual = content.studyOutput && content.studyOutput.trim();
+                        const hasVocab = content.vocabOutput && content.vocabOutput.length > 0;
+                        const hasTest = content.testOutput && content.testOutput.trim();
+                        
+                        addTestResult(`内容完整性: 爽文${hasStory?'✓':'✗'} 中英${hasBilingual?'✓':'✗'} 词汇${hasVocab?'✓':'✗'} 测试${hasTest?'✓':'✗'}`, 
+                                    (hasStory && hasBilingual && hasVocab && hasTest) ? 'success' : 'error');
+                    }
+                } catch (error) {
+                    addTestResult(`查看数据出错: ${error.message}`, 'error');
+                }
+            });
+
+            // 清空历史记录
+            document.getElementById('clear-history').addEventListener('click', function() {
+                if (confirm('确定要清空所有历史记录吗？')) {
+                    try {
+                        window.historyManager.clearAllHistory();
+                        addTestResult('历史记录已清空', 'success');
+                    } catch (error) {
+                        addTestResult(`清空历史记录出错: ${error.message}`, 'error');
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

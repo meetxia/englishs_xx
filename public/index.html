@@ -16,16 +16,66 @@
     <link rel="stylesheet" href="css/styles.css">
     <script src="js/canvas-renderer.js"></script>
     <style>
-        .sticky-generate-btn {
-            position: sticky;
+        /* 悬浮按钮容器样式 */
+        .floating-buttons {
+            position: fixed;
             bottom: 20px;
-            z-index: 100;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            left: 65%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            gap: 12px;
             transition: all 0.3s ease;
         }
-        .sticky-generate-btn:hover {
+
+        .floating-btn {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            font-weight: 600;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .floating-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 历史记录按钮样式 */
+        .floating-btn.history-btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            padding: 12px 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .floating-btn.history-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .floating-btn.history-btn:hover::before {
+            left: 100%;
+        }
+
+        /* 生成按钮样式 */
+        .floating-btn.generate-btn {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            padding: 12px 24px;
+            font-size: 16px;
+            min-width: 200px;
         }
         
         /* 添加音频效果反馈样式 */
@@ -82,64 +132,140 @@
             background: #94a3b8;
         }
         
-        /* 按钮组样式优化 */
-        .btn-group {
+        /* 词库和主题选择容器样式 */
+        .word-list-container, .theme-container {
             display: flex;
-            gap: 0.75rem;
-        }
-        
-        .btn-group button {
-            flex: 1;
-            min-height: 48px;
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
-        
-        .btn-group button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-        }
-        
-        /* 历史记录按钮特殊样式 */
-        #history-btn {
-            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-            position: relative;
+            flex-wrap: wrap;
+            gap: 8px;
+            transition: all 0.3s ease;
             overflow: hidden;
         }
-        
-        #history-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
+
+        /* 折叠状态：只显示一行 */
+        .word-list-container.collapsed, .theme-container.collapsed {
+            max-height: 48px; /* 大约一行按钮的高度 */
         }
-        
-        #history-btn:hover::before {
-            left: 100%;
+
+        /* 展开状态：显示所有内容 */
+        .word-list-container.expanded, .theme-container.expanded {
+            max-height: none;
         }
-        
+
+        /* 展开/收起按钮样式 */
+        .toggle-icon {
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-icon.rotated {
+            transform: rotate(180deg);
+        }
+
+        /* 确保标题和按钮在同一行 */
+        .control-panel h3.mb-0 {
+            margin-bottom: 0;
+        }
+
         /* 响应式优化 */
         @media (max-width: 640px) {
-            .btn-group {
+            .floating-buttons {
                 flex-direction: column;
-                gap: 0.5rem;
+                gap: 10px;
+                bottom: 15px;
+                left: 50%;
+                width: calc(100% - 40px);
+                max-width: 400px;
             }
-            
+
+            .floating-btn {
+                width: 100%;
+                min-width: 280px;
+                padding: 14px 20px;
+                font-size: 15px;
+                min-height: 52px;
+                white-space: nowrap;
+            }
+
+            /* 移动端历史记录按钮特殊样式 */
+            .floating-btn.history-btn {
+                padding: 14px 20px;
+                min-width: 280px;
+            }
+
+            /* 移动端生成按钮特殊样式 */
+            .floating-btn.generate-btn {
+                padding: 14px 20px;
+                min-width: 280px;
+                font-size: 15px;
+            }
+
+            /* 移动端折叠状态调整 */
+            .word-list-container.collapsed, .theme-container.collapsed {
+                max-height: 96px; /* 移动端可能需要两行 */
+            }
+
             #history-modal .flex {
                 flex-direction: column;
             }
-            
+
             #history-modal .w-1\/2 {
                 width: 100%;
             }
-            
+
             #history-modal .max-w-6xl {
                 max-width: 95vw;
             }
+        }
+
+        /* 历史记录标签页样式 */
+        .history-tab-btn {
+            transition: all 0.2s ease;
+            border-bottom: 2px solid transparent;
+        }
+
+        .history-tab-btn:hover {
+            color: #ef4444 !important;
+        }
+
+        .history-tab-btn.active {
+            color: #ef4444 !important;
+            border-bottom-color: #ef4444 !important;
+        }
+
+        .history-tab-pane {
+            transition: opacity 0.2s ease;
+        }
+
+        .history-tab-pane.hidden {
+            display: none;
+        }
+
+        /* 历史记录词汇项样式 */
+        .history-vocab-content .vocab-item {
+            transition: all 0.2s ease;
+        }
+
+        .history-vocab-content .vocab-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 历史记录内容区域样式 */
+        .history-story-content,
+        .history-bilingual-content,
+        .history-test-content {
+            line-height: 1.6;
+        }
+
+        .history-story-content h1,
+        .history-story-content h2,
+        .history-story-content h3 {
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        .history-story-content p {
+            margin-bottom: 0.75rem;
         }
     </style>
 </head>
@@ -153,8 +279,16 @@
         <div class="lg:col-span-6 bg-white p-6 rounded-2xl shadow-md h-fit">
             <div class="control-panel space-y-6">
                 <div>
-                    <h3>1. 选择预设词库</h3>
-                    <div id="word-list-container" class="flex flex-wrap gap-2">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="mb-0">1. 选择预设词库</h3>
+                        <button id="word-list-toggle" class="text-sm text-blue-600 hover:text-blue-800 transition-colors">
+                            <span class="toggle-text">展开全部</span>
+                            <svg class="inline-block w-4 h-4 ml-1 transition-transform toggle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="word-list-container" class="word-list-container collapsed">
                         <!-- Word list buttons will be injected here -->
                     </div>
                 </div>
@@ -163,13 +297,48 @@
                     <textarea id="custom-words" rows="4" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400 focus:border-red-400" placeholder="用英文逗号,隔开..."></textarea>
                 </div>
                 <div>
-                    <h3>3. 选择故事主题</h3>
-                    <div id="theme-container" class="flex flex-wrap gap-2">
+                    <h3>3. 参数设置</h3>
+                    <!-- 发音类型选择 -->
+                    <div class="mb-4">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">发音类型选择：</h4>
+                        <div class="flex gap-3">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="pronunciation-accent" value="gb" class="form-radio text-red-500" checked>
+                                <span class="ml-2 text-sm">🇬🇧 英式发音</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="pronunciation-accent" value="us" class="form-radio text-blue-500">
+                                <span class="ml-2 text-sm">🇺🇸 美式发音</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 单词数量设置 -->
+                    <div class="mb-4">
+                        <label for="word-count" class="block text-sm font-medium text-gray-700">单词数量: <span id="word-count-display" class="font-bold text-blue-500">15</span> / <span id="max-word-count" class="text-gray-500">10</span>个</label>
+                        <input type="range" id="word-count-slider" min="5" max="50" value="15" step="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    </div>
+
+                    <!-- 故事字数设置 -->
+                    <label for="char-count" class="block text-sm font-medium text-gray-700">故事字数: <span id="char-count-display" class="font-bold text-red-500">300</span>字</label>
+                    <input id="char-count" type="range" min="200" max="1000" value="300" step="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                </div>
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="mb-0">4. 选择故事主题</h3>
+                        <button id="theme-toggle" class="text-sm text-blue-600 hover:text-blue-800 transition-colors">
+                            <span class="toggle-text">展开全部</span>
+                            <svg class="inline-block w-4 h-4 ml-1 transition-transform toggle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="theme-container" class="theme-container collapsed">
                         <!-- Theme buttons will be injected here -->
                     </div>
                 </div>
                 <div>
-                    <h3>4. 音频功能</h3>
+                    <h3>5. 音频功能</h3>
                     <div class="flex items-center cursor-pointer mb-2" id="audio-info-toggle">
                         <span class="text-blue-600 font-medium">🔊 点击查看音频功能说明</span>
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2 text-blue-500 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -212,33 +381,6 @@
                     </div>
                 </div>
                 <div>
-                    <h3>5. 参数设置</h3>
-                    <!-- 发音类型选择 -->
-                    <div class="mb-4">
-                        <h4 class="text-sm font-medium text-gray-700 mb-2">发音类型选择：</h4>
-                        <div class="flex gap-3">
-                            <label class="inline-flex items-center">
-                                <input type="radio" name="pronunciation-accent" value="gb" class="form-radio text-red-500" checked>
-                                <span class="ml-2 text-sm">🇬🇧 英式发音</span>
-                            </label>
-                            <label class="inline-flex items-center">
-                                <input type="radio" name="pronunciation-accent" value="us" class="form-radio text-blue-500">
-                                <span class="ml-2 text-sm">🇺🇸 美式发音</span>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <!-- 单词数量设置 -->
-                    <div class="mb-4">
-                        <label for="word-count" class="block text-sm font-medium text-gray-700">单词数量: <span id="word-count-display" class="font-bold text-blue-500">15</span> / <span id="max-word-count" class="text-gray-500">10</span>个</label>
-                        <input type="range" id="word-count-slider" min="5" max="50" value="15" step="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
-                    </div>
-                    
-                    <!-- 故事字数设置 -->
-                    <label for="char-count" class="block text-sm font-medium text-gray-700">故事字数: <span id="char-count-display" class="font-bold text-red-500">300</span>字</label>
-                    <input id="char-count" type="range" min="200" max="1000" value="300" step="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
-                </div>
-                <div>
                     <h3>6. AI模型</h3>
                     <div class="flex flex-col gap-2 mt-2">
                         <!-- 仅显示DeepSeek-V3，设为默认选中 -->
@@ -249,18 +391,7 @@
                         <p class="text-sm text-gray-500 mt-1">使用最新的DeepSeek-V3模型，提供高质量的故事生成</p>
                     </div>
                 </div>
-                <div class="btn-group">
-                    <button id="history-btn" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 ease-in-out flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        历史记录
-                    </button>
-                    <button id="generate-btn" class="sticky-generate-btn flex-[2] bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 ease-in-out flex items-center justify-center text-lg">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
-                        AI 生成故事 & 学习卡片
-                    </button>
-                </div>
+                <!-- 悬浮按钮将通过JavaScript动态创建 -->
             </div>
         </div>
 
@@ -278,18 +409,22 @@
                         </div>
                         <div class="text-center">
                             <span class="inline-block bg-blue-100 text-blue-800 rounded-full px-3 py-1 text-sm font-semibold">2</span>
-                            <p class="mt-1 text-sm">选择故事主题和卡片类型</p>
+                            <p class="mt-1 text-sm">调整参数设置</p>
                         </div>
                         <div class="text-center">
-                            <span class="inline-block bg-green-100 text-green-800 rounded-full px-3 py-1 text-sm font-semibold">3</span>
-                            <p class="mt-1 text-sm">点击"AI 生成故事 & 学习卡片"按钮</p>
+                            <span class="inline-block bg-purple-100 text-purple-800 rounded-full px-3 py-1 text-sm font-semibold">3</span>
+                            <p class="mt-1 text-sm">选择故事主题</p>
+                        </div>
+                        <div class="text-center">
+                            <span class="inline-block bg-green-100 text-green-800 rounded-full px-3 py-1 text-sm font-semibold">4</span>
+                            <p class="mt-1 text-sm">点击悬浮的"AI 生成故事"按钮</p>
                         </div>
                     </div>
                 </div>
                 
                 <h3 class="text-xl font-bold text-gray-800 mb-4 text-center">看看生成的示例</h3>
                 
-                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                <div class="bg-white border-gray-200 rounded-lg p-1">
                     <div class="example-tabs flex border-b border-gray-200 mb-4">
                         <button class="example-tab-btn active px-4 py-2 text-sm font-medium text-red-500 border-b-2 border-red-500" data-example-tab="example-tab1">爽文带背</button>
                         <button class="example-tab-btn px-4 py-2 text-sm font-medium text-gray-500" data-example-tab="example-tab2">中英对照</button>
@@ -510,7 +645,45 @@
                                 <!-- 内容预览 -->
                                 <div class="mb-6">
                                     <h4 class="text-lg font-semibold text-gray-700 mb-3">内容预览</h4>
-                                    <div id="history-detail-content" class="bg-gray-50 rounded-lg p-4 max-h-80 overflow-y-auto text-sm"></div>
+
+                                    <!-- 模式切换标签页 -->
+                                    <div class="flex border-b border-gray-200 mb-4">
+                                        <button class="history-tab-btn active px-3 py-2 text-sm font-medium text-red-500 border-b-2 border-red-500" data-history-tab="story">
+                                            爽文带背
+                                        </button>
+                                        <button class="history-tab-btn px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700" data-history-tab="bilingual">
+                                            中英对照
+                                        </button>
+                                        <button class="history-tab-btn px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700" data-history-tab="vocab">
+                                            单词列表
+                                        </button>
+                                        <button class="history-tab-btn px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700" data-history-tab="test">
+                                            填空测试
+                                        </button>
+                                    </div>
+
+                                    <!-- 标签页内容 -->
+                                    <div class="history-tab-content">
+                                        <!-- 爽文带背 -->
+                                        <div id="history-tab-story" class="history-tab-pane active bg-gray-50 rounded-lg p-4 max-h-80 overflow-y-auto text-sm">
+                                            <div class="history-story-content"></div>
+                                        </div>
+
+                                        <!-- 中英对照 -->
+                                        <div id="history-tab-bilingual" class="history-tab-pane hidden bg-gray-50 rounded-lg p-4 max-h-80 overflow-y-auto text-sm">
+                                            <div class="history-bilingual-content"></div>
+                                        </div>
+
+                                        <!-- 单词列表 -->
+                                        <div id="history-tab-vocab" class="history-tab-pane hidden bg-gray-50 rounded-lg p-4 max-h-80 overflow-y-auto text-sm">
+                                            <div class="history-vocab-content"></div>
+                                        </div>
+
+                                        <!-- 填空测试 -->
+                                        <div id="history-tab-test" class="history-tab-pane hidden bg-gray-50 rounded-lg p-4 max-h-80 overflow-y-auto text-sm">
+                                            <div class="history-test-content"></div>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <!-- 操作按钮 -->

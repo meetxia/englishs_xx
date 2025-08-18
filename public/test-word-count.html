@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单词数量计算测试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-800 mb-8">单词数量计算测试</h1>
+        
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">新的计算规则：200字 = 10个单词</h2>
+            
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="char-input" class="block text-sm font-medium text-gray-700 mb-2">输入字数：</label>
+                        <input type="number" id="char-input" value="300" min="100" max="1000" step="50" 
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">计算出的单词数：</label>
+                        <div id="word-result" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg text-lg font-semibold text-blue-600">
+                            15
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="calculate-btn" class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors">
+                    重新计算
+                </button>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">计算示例</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <div class="text-lg font-semibold text-blue-800">200字</div>
+                    <div class="text-sm text-gray-600">= 10个单词</div>
+                </div>
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <div class="text-lg font-semibold text-green-800">300字</div>
+                    <div class="text-sm text-gray-600">= 15个单词</div>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-lg">
+                    <div class="text-lg font-semibold text-purple-800">400字</div>
+                    <div class="text-sm text-gray-600">= 20个单词</div>
+                </div>
+                <div class="bg-red-50 p-4 rounded-lg">
+                    <div class="text-lg font-semibold text-red-800">500字</div>
+                    <div class="text-sm text-gray-600">= 25个单词</div>
+                </div>
+                <div class="bg-yellow-50 p-4 rounded-lg">
+                    <div class="text-lg font-semibold text-yellow-800">600字</div>
+                    <div class="text-sm text-gray-600">= 30个单词</div>
+                </div>
+                <div class="bg-indigo-50 p-4 rounded-lg">
+                    <div class="text-lg font-semibold text-indigo-800">800字</div>
+                    <div class="text-sm text-gray-600">= 40个单词</div>
+                </div>
+            </div>
+            
+            <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                <h3 class="font-semibold text-gray-800 mb-2">计算公式：</h3>
+                <code class="text-sm bg-white px-2 py-1 rounded border">单词数 = Math.floor(字数 / 20)</code>
+                <p class="text-sm text-gray-600 mt-2">
+                    最小值：5个单词，最大值：50个单词
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function calculateWordCount(charCount) {
+            // 按照200字/10个单词的比例计算
+            let wordCount = Math.floor(charCount / 20);
+            
+            // 限制最小和最大单词数量
+            if (wordCount < 5) wordCount = 5;
+            if (wordCount > 50) wordCount = 50;
+            
+            return wordCount;
+        }
+
+        function updateResult() {
+            const charInput = document.getElementById('char-input');
+            const wordResult = document.getElementById('word-result');
+            
+            const charCount = parseInt(charInput.value) || 0;
+            const wordCount = calculateWordCount(charCount);
+            
+            wordResult.textContent = `${wordCount}个单词`;
+            
+            // 添加计算过程说明
+            const process = document.getElementById('calculation-process');
+            if (process) {
+                process.textContent = `计算过程：${charCount} ÷ 20 = ${Math.floor(charCount / 20)}`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const charInput = document.getElementById('char-input');
+            const calculateBtn = document.getElementById('calculate-btn');
+            
+            // 绑定输入事件
+            charInput.addEventListener('input', updateResult);
+            
+            // 绑定按钮事件
+            calculateBtn.addEventListener('click', updateResult);
+            
+            // 初始计算
+            updateResult();
+        });
+    </script>
+</body>
+</html>

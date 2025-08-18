@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>移动端按钮测试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .floating-buttons {
+            position: fixed;
+            bottom: 20px;
+            left: 65%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            gap: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .floating-btn {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            font-weight: 600;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .floating-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 历史记录按钮样式 */
+        .floating-btn.history-btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            padding: 12px 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .floating-btn.history-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .floating-btn.history-btn:hover::before {
+            left: 100%;
+        }
+
+        /* 生成按钮样式 */
+        .floating-btn.generate-btn {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            padding: 12px 24px;
+            font-size: 16px;
+            min-width: 200px;
+        }
+
+        /* 移动端样式 */
+        @media (max-width: 768px) {
+            .floating-buttons {
+                flex-direction: column;
+                gap: 10px;
+                bottom: 15px;
+                left: 50%;
+                width: calc(100% - 40px);
+                max-width: 400px;
+            }
+
+            .floating-btn {
+                width: 100%;
+                min-width: 280px;
+                padding: 14px 20px;
+                font-size: 15px;
+                min-height: 52px;
+                white-space: nowrap;
+            }
+
+            /* 移动端历史记录按钮特殊样式 */
+            .floating-btn.history-btn {
+                padding: 14px 20px;
+                min-width: 280px;
+            }
+
+            /* 移动端生成按钮特殊样式 */
+            .floating-btn.generate-btn {
+                padding: 14px 20px;
+                min-width: 280px;
+                font-size: 15px;
+            }
+        }
+
+        /* 测试内容样式 */
+        .test-content {
+            min-height: 80vh;
+            padding-bottom: 150px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="test-content p-4">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-3xl font-bold text-gray-800 mb-8">移动端按钮测试</h1>
+            
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">测试说明</h2>
+                <div class="space-y-4">
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h3 class="font-semibold text-blue-800 mb-2">桌面端效果</h3>
+                        <ul class="text-sm text-blue-700 space-y-1">
+                            <li>• 按钮水平排列</li>
+                            <li>• 历史记录按钮较小</li>
+                            <li>• AI生成按钮较大（min-width: 200px）</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <h3 class="font-semibold text-green-800 mb-2">移动端效果（优化后）</h3>
+                        <ul class="text-sm text-green-700 space-y-1">
+                            <li>• 按钮垂直排列</li>
+                            <li>• 两个按钮都是相同宽度（min-width: 280px）</li>
+                            <li>• 更大的内边距（14px 20px）</li>
+                            <li>• 更高的最小高度（52px）</li>
+                            <li>• 居中显示，左右留边距</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">测试方法</h2>
+                <div class="space-y-2 text-gray-700">
+                    <p>1. 在桌面浏览器中查看按钮效果</p>
+                    <p>2. 使用浏览器开发者工具切换到移动端视图</p>
+                    <p>3. 或在手机浏览器中直接访问此页面</p>
+                    <p>4. 检查按钮是否完整显示，没有被截断</p>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">当前屏幕信息</h2>
+                <div id="screen-info" class="space-y-2 text-gray-700">
+                    <!-- 屏幕信息将通过JavaScript填充 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 悬浮按钮 -->
+    <div class="floating-buttons">
+        <button class="floating-btn history-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            历史记录
+        </button>
+        
+        <button class="floating-btn generate-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+            AI 生成故事 & 学习卡片
+        </button>
+    </div>
+
+    <script>
+        function updateScreenInfo() {
+            const screenInfo = document.getElementById('screen-info');
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            const isMobile = width <= 768;
+            
+            screenInfo.innerHTML = `
+                <p><strong>屏幕宽度：</strong>${width}px</p>
+                <p><strong>屏幕高度：</strong>${height}px</p>
+                <p><strong>设备类型：</strong>${isMobile ? '移动端' : '桌面端'}</p>
+                <p><strong>媒体查询状态：</strong>${isMobile ? '应用移动端样式' : '应用桌面端样式'}</p>
+            `;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateScreenInfo();
+            
+            // 监听窗口大小变化
+            window.addEventListener('resize', updateScreenInfo);
+            
+            // 添加按钮点击事件
+            document.querySelector('.history-btn').addEventListener('click', function() {
+                alert('历史记录按钮被点击');
+            });
+            
+            document.querySelector('.generate-btn').addEventListener('click', function() {
+                alert('AI生成按钮被点击');
+            });
+        });
+    </script>
+</body>
+</html>
